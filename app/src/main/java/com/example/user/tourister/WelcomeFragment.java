@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,20 +18,12 @@ import com.facebook.AccessTokenTracker;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
-import com.facebook.FacebookSdk;
-import com.facebook.Profile;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.firebase.client.AuthData;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 
-import java.util.Map;
-
-
-/**
- * A simple {@link Fragment} subclass.
- */
 public class WelcomeFragment extends Fragment {
 
     //Facebook
@@ -63,7 +55,6 @@ public class WelcomeFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
         View rootView = inflater.inflate(R.layout.fragment_welcome, container, false);
 
         loginView = (EditText) rootView.findViewById(R.id.email_ed);
@@ -73,12 +64,35 @@ public class WelcomeFragment extends Fragment {
 
         mFirebaseRef = new Firebase(getResources().getString(R.string.firebase_url));
         mFacebookCallbackManager = CallbackManager.Factory.create();
-        mFacebookAccessTokenTracker = new AccessTokenTracker() {
+
+        loginButton.setReadPermissions("user_friends");
+        // If using in a fragment
+        loginButton.setFragment(this);
+        
+        loginButton.registerCallback(mFacebookCallbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                Log.d("Hello","hello");
+            }
+
+            @Override
+            public void onCancel() {
+                // App code
+            }
+
+            @Override
+            public void onError(FacebookException exception) {
+                // App code
+            }
+        });
+
+       mFacebookAccessTokenTracker = new AccessTokenTracker() {
             @Override
             protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
                 onFacebookAccessTokenChange(currentAccessToken);
             }
         };
+
         mAuthProgressDialog = new ProgressDialog(getContext());
         mAuthProgressDialog.setTitle("Loading");
         mAuthProgressDialog.setMessage("Authenticating...");
@@ -102,7 +116,7 @@ public class WelcomeFragment extends Fragment {
         return rootView;
     }
 
-    @Override
+   @Override
     public void onDestroy() {
         super.onDestroy();
         // if user logged in with Facebook, stop tracking their token
@@ -120,18 +134,6 @@ public class WelcomeFragment extends Fragment {
         mFacebookCallbackManager.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void setAuthenticatedUser(AuthData authData) {
-        if (authData != null) {
-            String name = null;
-            if (authData.getProvider().equals("facebook")) {
-                name = (String) authData.getProviderData().get("displayName");
-            }
-            if(getView()!=null)
-                Snackbar.make(getView(), "snack bar message", Snackbar.LENGTH_LONG).show();
-            this.mAuthData = authData;
-        }
-    }
-
     private void onFacebookAccessTokenChange(AccessToken token) {
         if (token != null) {
             mAuthProgressDialog.show();
@@ -142,6 +144,18 @@ public class WelcomeFragment extends Fragment {
                 mFirebaseRef.unauth();
                 setAuthenticatedUser(null);
             }
+        }
+    }
+
+    private void setAuthenticatedUser(AuthData authData) {
+        if (authData != null) {
+            String name = null;
+            if (authData.getProvider().equals("facebook")) {
+                name = (String) authData.getProviderData().get("displayName");
+            }
+            if(getView()!=null)
+                Snackbar.make(getView(), "Logged In", Snackbar.LENGTH_LONG).show();
+            this.mAuthData = authData;
         }
     }
 
