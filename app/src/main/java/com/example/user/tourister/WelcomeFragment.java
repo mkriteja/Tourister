@@ -68,7 +68,7 @@ public class WelcomeFragment extends Fragment {
         loginButton.setReadPermissions("user_friends");
         // If using in a fragment
         loginButton.setFragment(this);
-        
+
         loginButton.registerCallback(mFacebookCallbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
