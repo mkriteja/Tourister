@@ -2,6 +2,7 @@ package com.example.user.tourister;
 
 
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
@@ -42,6 +43,7 @@ public class WelcomeFragment extends Fragment {
     private Button login;
 
     private ProgressDialog mAuthProgressDialog;
+    private OnFragmentInteractionListener mListener;
 
     public WelcomeFragment() {
         // Required empty public constructor
@@ -153,8 +155,7 @@ public class WelcomeFragment extends Fragment {
             if (authData.getProvider().equals("facebook")) {
                 name = (String) authData.getProviderData().get("displayName");
             }
-            if(getView()!=null)
-                Snackbar.make(getView(), "Logged In", Snackbar.LENGTH_LONG).show();
+            mListener.onFragmentInteraction();
             this.mAuthData = authData;
         }
     }
@@ -179,4 +180,25 @@ public class WelcomeFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnFragmentInteractionListener) {
+            mListener = (OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
+
+
+    public interface OnFragmentInteractionListener {
+        void onFragmentInteraction();
+    }
 }
