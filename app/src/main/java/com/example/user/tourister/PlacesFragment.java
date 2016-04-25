@@ -47,14 +47,6 @@ public class PlacesFragment extends Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-
-        }
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_places, container, false);
@@ -100,12 +92,7 @@ public class PlacesFragment extends Fragment {
 
         protected ArrayList<Result> doInBackground(Void... values) {
 
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl("https://maps.googleapis.com/")
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-
-            PlacesInterface service = retrofit.create(PlacesInterface.class);
+            PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
             Call<Place> call = service.getPlaces("Museums in New york",AppManager.getApiKey());
             try {
              Place res = call.execute().body();

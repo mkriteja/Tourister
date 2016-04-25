@@ -120,8 +120,8 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
         @Override
         public Fragment getItem(int position) {
-            if(position==0)
-                return PlacesFragment.newInstance();
+            if(position==0) return PlacesFragment.newInstance();
+            else if(position==2)return FavFragment.newInstance();
             return new BlankFragment();
         }
 
