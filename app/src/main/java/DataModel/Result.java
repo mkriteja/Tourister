@@ -1,5 +1,5 @@
 
-package DataModel.com.example.user.tourister;
+package DataModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,15 +8,18 @@ import com.google.gson.annotations.SerializedName;
 
 public class Result {
 
+    @SerializedName("formatted_address")
+    @Expose
+    private String formattedAddress;
     @SerializedName("geometry")
     @Expose
     private Geometry geometry;
     @SerializedName("icon")
     @Expose
     private String icon;
-    @SerializedName("id")
+    @SerializedName("international_phone_number")
     @Expose
-    private String id;
+    private String internationalPhoneNumber;
     @SerializedName("name")
     @Expose
     private String name;
@@ -26,15 +29,36 @@ public class Result {
     @SerializedName("place_id")
     @Expose
     private String placeId;
-    @SerializedName("reference")
+    @SerializedName("rating")
     @Expose
-    private String reference;
-    @SerializedName("scope")
-    @Expose
-    private String scope;
+    private float rating;
     @SerializedName("types")
     @Expose
     private List<String> types = new ArrayList<String>();
+    @SerializedName("user_ratings_total")
+    @Expose
+    private Integer userRatingsTotal;
+    @SerializedName("website")
+    @Expose
+    private String website;
+
+    /**
+     * 
+     * @return
+     *     The formattedAddress
+     */
+    public String getFormattedAddress() {
+        return formattedAddress;
+    }
+
+    /**
+     * 
+     * @param formattedAddress
+     *     The formatted_address
+     */
+    public void setFormattedAddress(String formattedAddress) {
+        this.formattedAddress = formattedAddress;
+    }
 
     /**
      * 
@@ -75,19 +99,19 @@ public class Result {
     /**
      * 
      * @return
-     *     The id
+     *     The internationalPhoneNumber
      */
-    public String getId() {
-        return id;
+    public String getInternationalPhoneNumber() {
+        return internationalPhoneNumber;
     }
 
     /**
      * 
-     * @param id
-     *     The id
+     * @param internationalPhoneNumber
+     *     The international_phone_number
      */
-    public void setId(String id) {
-        this.id = id;
+    public void setInternationalPhoneNumber(String internationalPhoneNumber) {
+        this.internationalPhoneNumber = internationalPhoneNumber;
     }
 
     /**
@@ -147,37 +171,19 @@ public class Result {
     /**
      * 
      * @return
-     *     The reference
+     *     The rating
      */
-    public String getReference() {
-        return reference;
+    public float getRating() {
+        return rating;
     }
 
     /**
      * 
-     * @param reference
-     *     The reference
+     * @param rating
+     *     The rating
      */
-    public void setReference(String reference) {
-        this.reference = reference;
-    }
-
-    /**
-     * 
-     * @return
-     *     The scope
-     */
-    public String getScope() {
-        return scope;
-    }
-
-    /**
-     * 
-     * @param scope
-     *     The scope
-     */
-    public void setScope(String scope) {
-        this.scope = scope;
+    public void setRating(float rating) {
+        this.rating = rating;
     }
 
     /**
@@ -196,6 +202,42 @@ public class Result {
      */
     public void setTypes(List<String> types) {
         this.types = types;
+    }
+
+    /**
+     * 
+     * @return
+     *     The userRatingsTotal
+     */
+    public Integer getUserRatingsTotal() {
+        return userRatingsTotal;
+    }
+
+    /**
+     * 
+     * @param userRatingsTotal
+     *     The user_ratings_total
+     */
+    public void setUserRatingsTotal(Integer userRatingsTotal) {
+        this.userRatingsTotal = userRatingsTotal;
+    }
+
+    /**
+     * 
+     * @return
+     *     The website
+     */
+    public String getWebsite() {
+        return website;
+    }
+
+    /**
+     * 
+     * @param website
+     *     The website
+     */
+    public void setWebsite(String website) {
+        this.website = website;
     }
 
 }

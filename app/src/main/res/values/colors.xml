@@ -17,4 +17,6 @@
     <color name="darkorange">#FFFF8800</color>
     <color name="darkred">#FFCC0000</color>
 
+    <color name="photo_tint">#7f101010</color>
+
 </resources>

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
+import android.util.DisplayMetrics;
 
 public class SplashActivity extends FragmentActivity {
 
@@ -23,4 +24,5 @@ public class SplashActivity extends FragmentActivity {
             }
         }, SPLASH_DISPLAY_LENGTH);
     }
+
 }

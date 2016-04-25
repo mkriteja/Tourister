@@ -4,10 +4,9 @@ package com.example.user.tourister;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,11 +18,21 @@ import com.facebook.AccessTokenTracker;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.firebase.client.AuthData;
+import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
+import com.firebase.client.Query;
+import com.firebase.client.ValueEventListener;
+
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Objects;
 
 public class WelcomeFragment extends Fragment {
 
@@ -67,28 +76,28 @@ public class WelcomeFragment extends Fragment {
         mFirebaseRef = new Firebase(getResources().getString(R.string.firebase_url));
         mFacebookCallbackManager = CallbackManager.Factory.create();
 
-        loginButton.setReadPermissions("user_friends");
-        // If using in a fragment
+        loginButton.setReadPermissions("email");
+
         loginButton.setFragment(this);
 
         loginButton.registerCallback(mFacebookCallbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                Log.d("Hello","hello");
+                int i=1;
             }
 
             @Override
             public void onCancel() {
-                // App code
+
             }
 
             @Override
             public void onError(FacebookException exception) {
-                // App code
+
             }
         });
 
-       mFacebookAccessTokenTracker = new AccessTokenTracker() {
+        mFacebookAccessTokenTracker = new AccessTokenTracker() {
             @Override
             protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
                 onFacebookAccessTokenChange(currentAccessToken);
@@ -111,14 +120,14 @@ public class WelcomeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 mAuthProgressDialog.show();
-                mFirebaseRef.authWithPassword(loginView.getText().toString(),passwordView.getText().toString(), new AuthResultHandler("password"));
+                mFirebaseRef.authWithPassword(loginView.getText().toString().trim(), passwordView.getText().toString().trim(), new AuthResultHandler("password"));
             }
         });
         mFirebaseRef.addAuthStateListener(mAuthStateListener);
         return rootView;
     }
 
-   @Override
+    @Override
     public void onDestroy() {
         super.onDestroy();
         // if user logged in with Facebook, stop tracking their token
@@ -151,10 +160,28 @@ public class WelcomeFragment extends Fragment {
 
     private void setAuthenticatedUser(AuthData authData) {
         if (authData != null) {
-            String name = null;
-            if (authData.getProvider().equals("facebook")) {
-                name = (String) authData.getProviderData().get("displayName");
+
+            if(authData.getProvider().equals("facebook")){
+                final String name = (String) authData.getProviderData().get("displayName");
+                final String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.","@@");
+                AppManager.setUseremail(email);
+                final Firebase favref = AppManager.getRef();
+                Query queryRef = favref.orderByKey().equalTo(email);
+                queryRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        if(dataSnapshot.getChildrenCount()==0){
+                            favref.child(email).child("Name").setValue(name);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(FirebaseError firebaseError) {
+
+                    }
+                });
             }
+
             mListener.onFragmentInteraction();
             this.mAuthData = authData;
         }

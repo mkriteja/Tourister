@@ -1,29 +1,29 @@
 package com.example.user.tourister;
 
 
-import android.content.Context;
+import android.app.ActivityOptions;
+import android.content.Intent;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import com.github.florent37.materialviewpager.MaterialViewPagerHelper;
 import com.github.florent37.materialviewpager.adapter.RecyclerViewMaterialAdapter;
 
-import org.json.JSONObject;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
-import java.util.HashMap;
-
-import DataModel.com.example.user.tourister.Place;
+import DataModel.Place;
+import DataModel.Result;
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.GsonConverterFactory;
-import retrofit2.Response;
 import retrofit2.Retrofit;
 
 
@@ -33,21 +33,16 @@ import retrofit2.Retrofit;
 public class PlacesFragment extends Fragment {
 
     private RecyclerView recyclerView;
+    private PlacesAdapter padapter;
     private LinearLayoutManager mLayoutManager;
-    private MyAdapter mAdapter;
-    private MovieData movieData;
-    private int scrollpos=0;
     private RecyclerViewMaterialAdapter tempadapter;
-    private static String API_KEY ="AIzaSyA7oAvJwhU-bgedvLqyS1TWdzlBS83nO5Q";
+    private ArrayList<Result> places;
 
     public PlacesFragment() {
 
     }
     public static PlacesFragment newInstance() {
         PlacesFragment fragment = new PlacesFragment();
-        Bundle args =new Bundle();
-        args.putSerializable("movieData",new MovieData());
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -63,77 +58,74 @@ public class PlacesFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_places, container, false);
-        movieData = (MovieData)getArguments().getSerializable("movieData");
-        for (int i=0;i<movieData.getSize();i++) {
-            movieData.getItem(i).put("SelectStatus",false);
-        }
         recyclerView = (RecyclerView) rootView.findViewById(R.id.recycler);
-        new DownloadPlaces().execute();
         recyclerView.setHasFixedSize(true);
-
         mLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(mLayoutManager);
-
-        mAdapter = new MyAdapter(getActivity(),movieData.getMoviesList());
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://maps.googleapis.com/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        PlacesInterface service = retrofit.create(PlacesInterface.class);
-        Call<Place> call = service.getPlaces("Museums in New york",API_KEY);
-        call.enqueue(new Callback<Place>() {
-            @Override
-            public void onResponse(Call<Place> call, Response<Place> response) {
-                int statusCode = response.code();
-                Place user = response.body();
-                Log.d("test",user.getResults().toString());
-            }
-
-            @Override
-            public void onFailure(Call<Place> call, Throwable t) {
-                // Log error here since request failed
-            }
-        });
-
-        mAdapter.setOnItemClickListener(new MyAdapter.onItemClickListener() {
-            @Override
-            public void onItemClick(View view, int position) {
-                getArguments().putSerializable("movieData",movieData);
-            }
-
-            @Override
-            public void onItemLongClick(View view, int position) {
-
-                movieData.getMoviesList().add(position+1,new HashMap<>(movieData.getItem(position)));
-                mAdapter.notifyItemInserted(position+1);
-            }
-
-            @Override
-            public void onChangeClick(boolean ischecked,int position){
-                if(ischecked)
-                    movieData.getItem(position).put("SelectStatus",true);
-                else
-                    movieData.getItem(position).put("SelectStatus",false);
-            }
-
-        });
-
-        tempadapter = new RecyclerViewMaterialAdapter(mAdapter);
+        places = new ArrayList<>();
+        padapter = new PlacesAdapter(getActivity(),places);
+        tempadapter = new RecyclerViewMaterialAdapter(padapter);
         recyclerView.setAdapter(tempadapter);
         MaterialViewPagerHelper.registerRecyclerView(getActivity(), recyclerView, null);
+        new DownloadPlaces(padapter).execute();
+        padapter.setOnItemClickListener(new PlacesAdapter.onItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                position = position-1;
+                ImageView hero = (ImageView) view.findViewById(R.id.placeimage);
+                Intent intent = new Intent(getActivity(),DetailActivity.class);
+                intent.putExtra("lat",places.get(position).getGeometry().getLocation().getLat());
+                intent.putExtra("lng",places.get(position).getGeometry().getLocation().getLng());
+                intent.putExtra("zoom", 15.0f);
+                intent.putExtra("title",places.get(position).getName());
+                intent.putExtra("placeid",places.get(position).getPlaceId());
+                intent.putExtra("photo",R.drawable.photo1);
+                AppManager.setsPhotoCache(((BitmapDrawable) hero.getDrawable()).getBitmap());
+                ActivityOptions options =
+                        ActivityOptions.makeSceneTransitionAnimation(getActivity(), hero, "photo_hero");
+                startActivity(intent, options.toBundle());
+            }
+        });
+
         return rootView;
     }
 
-    private class DownloadPlaces extends AsyncTask<Void, Integer, Integer> {
-        protected Integer doInBackground(Void... values) {
 
+    private class DownloadPlaces extends AsyncTask<Void, Integer, ArrayList<Result>> {
+        private final WeakReference<PlacesAdapter> adapterWeakReference;
 
-            return 0;
+        public DownloadPlaces(PlacesAdapter adapter){
+            adapterWeakReference = new WeakReference<>(adapter);
         }
 
-        protected void onPostExecute(Integer res) {
+        protected ArrayList<Result> doInBackground(Void... values) {
 
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl("https://maps.googleapis.com/")
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+
+            PlacesInterface service = retrofit.create(PlacesInterface.class);
+            Call<Place> call = service.getPlaces("Museums in New york",AppManager.getApiKey());
+            try {
+             Place res = call.execute().body();
+                return res.getResults();
+            }catch (Exception e){
+                return null;
+            }
+        }
+
+        protected void onPostExecute(ArrayList<Result> tresults) {
+            places.clear();
+            places.addAll(tresults);
+            if (adapterWeakReference != null) {
+                final PlacesAdapter adapter = adapterWeakReference.get();
+                if (adapter != null) {
+                    adapter.notifyDataSetChanged();
+                    tempadapter.notifyDataSetChanged();
+                }
+            }
         }
     }
+
 }

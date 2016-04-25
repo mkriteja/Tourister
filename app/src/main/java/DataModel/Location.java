@@ -1,5 +1,5 @@
 
-package DataModel.com.example.user.tourister;
+package DataModel;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
