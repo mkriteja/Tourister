@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 
 import com.firebase.client.Firebase;
 
+import java.util.ArrayList;
+
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
 
@@ -64,5 +66,4 @@ public class AppManager {
 
         return  retrofit;
     }
-
 }

@@ -1,7 +1,9 @@
 package com.example.user.tourister;
 
 
+import android.app.Activity;
 import android.app.ActivityOptions;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
@@ -37,6 +39,7 @@ public class PlacesFragment extends Fragment {
     private LinearLayoutManager mLayoutManager;
     private RecyclerViewMaterialAdapter tempadapter;
     private ArrayList<Result> places;
+    OnDataAvailable onDataAvailable;
 
     public PlacesFragment() {
 
@@ -112,7 +115,29 @@ public class PlacesFragment extends Fragment {
                     tempadapter.notifyDataSetChanged();
                 }
             }
+            ArrayList<String> photolist = new ArrayList<>();
+            for(Result r:places){
+                photolist.add(r.getPlaceId());
+            }
+            onDataAvailable.onDataSaved(photolist);
         }
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+
+        try {
+            onDataAvailable = (OnDataAvailable) context;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(context.toString()
+                    + " must implement OnHeadlineSelectedListener");
+        }
+
+    }
+
+    public interface OnDataAvailable {
+        void onDataSaved(ArrayList<String> data);
     }
 
 }

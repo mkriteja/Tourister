@@ -1,6 +1,5 @@
 package com.example.user.tourister;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
 import android.support.design.widget.NavigationView;
@@ -21,18 +20,21 @@ import android.view.View;
 import com.github.florent37.materialviewpager.MaterialViewPager;
 import com.github.florent37.materialviewpager.header.HeaderDesign;
 
-public class SliderActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+import java.util.ArrayList;
+
+public class SliderActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,PlacesFragment.OnDataAvailable {
 
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
-    private MyFragmentStateAdapter myFragmentStateAdapter;
     private MaterialViewPager mViewPager;
+    private PhotoFragment photofragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_slider);
 
+        photofragment = new PhotoFragment();
         mViewPager = (MaterialViewPager) findViewById(R.id.materialViewPager);
         mViewPager.setMaterialViewPagerListener(new MaterialViewPager.Listener() {
             @Override
@@ -121,6 +123,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         @Override
         public Fragment getItem(int position) {
             if(position==0) return PlacesFragment.newInstance();
+            else if(position==1) return photofragment;
             else if(position==2)return FavFragment.newInstance();
             return new BlankFragment();
         }
@@ -137,6 +140,10 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
             else if(position==2) return "Favorites";
             else return "Tours";
         }
+    }
+
+    public void onDataSaved(ArrayList<String> data){
+        photofragment.dataAvailable(data);
     }
 
 }
