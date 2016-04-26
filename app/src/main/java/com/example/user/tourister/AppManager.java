@@ -16,6 +16,8 @@ public class AppManager {
 
     private static Bitmap sPhotoCache;
 
+    private static Bitmap selectedPhoto;
+
     private static String useremail;
 
     private static Firebase ref = new Firebase("https://tourister.firebaseio.com/");
@@ -28,6 +30,14 @@ public class AppManager {
 
     public static AppManager getInstance( ) {
         return instance;
+    }
+
+    public static Bitmap getSelectedPhoto() {
+        return selectedPhoto;
+    }
+
+    public static void setSelectedPhoto(Bitmap selectedPhoto) {
+        AppManager.selectedPhoto = selectedPhoto;
     }
 
     public static Firebase getRef() {

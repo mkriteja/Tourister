@@ -1,9 +1,13 @@
 package com.example.user.tourister;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
@@ -14,15 +18,17 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.transition.Fade;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 
 import com.github.florent37.materialviewpager.MaterialViewPager;
 import com.github.florent37.materialviewpager.header.HeaderDesign;
 
 import java.util.ArrayList;
 
-public class SliderActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,PlacesFragment.OnDataAvailable {
+public class SliderActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, PlacesFragment.OnDataAvailable, PhotoFragment.OnPhotoInteractionListener {
 
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
@@ -78,12 +84,12 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         viewPager.setAdapter(new MyFragmentStateAdapter(getSupportFragmentManager()));
         mViewPager.getPagerTitleStrip().setViewPager(mViewPager.getViewPager());
 
-        navigationView=(NavigationView) findViewById(R.id.navigation);
+        navigationView = (NavigationView) findViewById(R.id.navigation);
         navigationView.setNavigationItemSelectedListener(this);
 
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer);
-        ActionBarDrawerToggle actionBarDrawerToggle = new ActionBarDrawerToggle(this,drawerLayout,toolbar,R.string.open_drawer,R.string.close_drawer){
+        ActionBarDrawerToggle actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.open_drawer, R.string.close_drawer) {
             public void onDrawerClosed(View view) {
                 super.onDrawerClosed(view);
             }
@@ -99,11 +105,11 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
     }
 
     @Override
-    public boolean onNavigationItemSelected(MenuItem item){
+    public boolean onNavigationItemSelected(MenuItem item) {
 
         int id = item.getItemId();
 
-        switch (id){
+        switch (id) {
 
         }
 
@@ -122,9 +128,9 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
         @Override
         public Fragment getItem(int position) {
-            if(position==0) return PlacesFragment.newInstance();
-            else if(position==1) return photofragment;
-            else if(position==2)return FavFragment.newInstance();
+            if (position == 0) return PlacesFragment.newInstance();
+            else if (position == 1) return photofragment;
+            else if (position == 2) return FavFragment.newInstance();
             return new BlankFragment();
         }
 
@@ -135,15 +141,30 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
         @Override
         public CharSequence getPageTitle(int position) {
-            if(position==0) return "Places";
-            else if(position==1) return "Photos";
-            else if(position==2) return "Favorites";
+            if (position == 0) return "Places";
+            else if (position == 1) return "Photos";
+            else if (position == 2) return "Favorites";
             else return "Tours";
         }
     }
 
-    public void onDataSaved(ArrayList<String> data){
+    public void onDataSaved(ArrayList<String> data) {
         photofragment.dataAvailable(data);
+    }
+
+    public void onPhotoInteraction(int position, View sharedImage) {
+        PhotoDetailFragment details = new PhotoDetailFragment();
+        details.setSharedElementEnterTransition(new DetailsTransition());
+        details.setEnterTransition(new Fade());
+        //details.setEnterTransition(new Slide());
+        details.setExitTransition(new Fade());
+        details.setSharedElementReturnTransition(new DetailsTransition());
+        AppManager.setSelectedPhoto(((BitmapDrawable)((ImageView) sharedImage.findViewById(R.id.cardimage)).getDrawable()).getBitmap());
+        getSupportFragmentManager().beginTransaction()
+                .addSharedElement(sharedImage, sharedImage.getTransitionName())
+                .replace(R.id.container, details)
+                .addToBackStack(null)
+                .commit();
     }
 
 }

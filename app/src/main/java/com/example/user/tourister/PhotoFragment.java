@@ -1,6 +1,8 @@
 package com.example.user.tourister;
 
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
@@ -41,6 +43,7 @@ public class PhotoFragment extends Fragment {
     private List<String> photoreferenceslist;
     private AtomicInteger counter = new AtomicInteger(0);
     private int placecount;
+    OnPhotoInteractionListener mListener;
 
     public PhotoFragment() {
 
@@ -65,7 +68,7 @@ public class PhotoFragment extends Fragment {
         photoAdapter.setOnItemClickListener(new PhotoAdapter.onItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
-
+                mListener.onPhotoInteraction(position,view);
             }
         });
         return rootView;
@@ -109,5 +112,26 @@ public class PhotoFragment extends Fragment {
                 setUpPhotos();
             }
         }
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnPhotoInteractionListener) {
+            mListener = (OnPhotoInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
+
+    public interface OnPhotoInteractionListener {
+        void onPhotoInteraction(int position, View view);
     }
 }
