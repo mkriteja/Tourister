@@ -19,4 +19,11 @@
 
     <color name="photo_tint">#7f101010</color>
 
+    <array name="mycolors">
+        <item>@color/red</item>
+        <item>@color/orange</item>
+        <item>@color/green</item>
+        <item>@color/cyan</item>
+    </array>
+
 </resources>

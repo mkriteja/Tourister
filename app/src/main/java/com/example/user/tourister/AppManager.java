@@ -18,6 +18,8 @@ public class AppManager {
 
     private static Bitmap selectedPhoto;
 
+    private static String transitionName;
+
     private static String useremail;
 
     private static Firebase ref = new Firebase("https://tourister.firebaseio.com/");
@@ -39,6 +41,15 @@ public class AppManager {
     public static void setSelectedPhoto(Bitmap selectedPhoto) {
         AppManager.selectedPhoto = selectedPhoto;
     }
+
+    public static String getTransitionName() {
+        return transitionName;
+    }
+
+    public static void setTransitionName(String transitionName) {
+        AppManager.transitionName = transitionName;
+    }
+
 
     public static Firebase getRef() {
         return ref;

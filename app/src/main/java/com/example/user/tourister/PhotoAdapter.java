@@ -1,9 +1,15 @@
 package com.example.user.tourister;
 
 import android.content.Context;
+import android.support.v4.view.ViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.OvershootInterpolator;
+import android.view.animation.ScaleAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -14,6 +20,7 @@ import java.util.List;
 
 import DataModel.Photo;
 import DataModel.Result;
+import jp.wasabeef.recyclerview.animators.SlideInUpAnimator;
 
 /**
  * Created by user on 4/25/2016.
@@ -23,6 +30,7 @@ public class PhotoAdapter extends android.support.v7.widget.RecyclerView.Adapter
     private Context context;
     private List<String> mDataset;
     onItemClickListener itemClickListener;
+    private final static int FADE_DURATION = 1000;
 
     public class ViewHolder extends android.support.v7.widget.RecyclerView.ViewHolder {
         // each data item is just a string in this case
@@ -31,21 +39,13 @@ public class PhotoAdapter extends android.support.v7.widget.RecyclerView.Adapter
         public ViewHolder(View v) {
             super(v);
             imageView = (ImageView) v.findViewById(R.id.cardimage);
-
-            v.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (itemClickListener != null) {
-                        itemClickListener.onItemClick(v, getAdapterPosition());
-                    }
-                }
-            });
-
         }
 
         public void bindMovieData(int pos) {
-            String imgurl= AppManager.getGooglePhotoUrl()+"maxwidth="+1500+"&photoreference="+mDataset.get(pos)+"&key="+AppManager.getApiKey();
-            Picasso.with(context).load(imgurl).into(imageView);
+            if(pos>1) {
+                String imgurl = AppManager.getGooglePhotoUrl() + "maxwidth=" + 1500 + "&photoreference=" + mDataset.get(pos-2) + "&key=" + AppManager.getApiKey();
+                Picasso.with(context).load(imgurl).into(imageView);
+            }
         }
     }
 
@@ -60,32 +60,50 @@ public class PhotoAdapter extends android.support.v7.widget.RecyclerView.Adapter
                                          int viewType) {
             View v;
             switch (viewType) {
-                case 1:
+                case 0:
                     v = LayoutInflater.from(parent.getContext())
                             .inflate(R.layout.temp, parent, false);
+                    break;
+                case 1:
+                    v = LayoutInflater.from(parent.getContext())
+                            .inflate(R.layout.first_row_photo_item, parent, false);
                     break;
                 default:
                     v = LayoutInflater.from(parent.getContext())
                             .inflate(R.layout.photo_item, parent, false);
                     break;
             }
+
         return new ViewHolder(v);
     }
 
     @Override
     public int getItemViewType(int position) {
-        if(position<2) return 1;
-        return 0;
+        if(position<2) return 0;
+        else if(position<5) return 1;
+        return 2;
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
+    public void onBindViewHolder(ViewHolder holder, final int position) {
         holder.bindMovieData(position);
-    }
+        ViewCompat.setTransitionName(holder.imageView,String.valueOf(position));
+        holder.imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (itemClickListener != null) {
+                    itemClickListener.onItemClick(v,position);
+                }
+            }
+        });
 
+        Animation slide_up = AnimationUtils.loadAnimation(context,
+                R.anim.slide_up);
+        holder.itemView.startAnimation(slide_up);
+    }
     @Override
     public int getItemCount() {
-        return mDataset.size();
+        return mDataset.size()+2;
     }
 
     public interface onItemClickListener {

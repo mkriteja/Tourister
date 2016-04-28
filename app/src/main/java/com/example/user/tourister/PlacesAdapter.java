@@ -1,9 +1,13 @@
 package com.example.user.tourister;
 
 import android.content.Context;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.ScaleAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -39,6 +43,15 @@ public class PlacesAdapter extends android.support.v7.widget.RecyclerView.Adapte
                     if (itemClickListener != null) {
                         itemClickListener.onItemClick(v, getAdapterPosition());
                     }
+                }
+            });
+            v.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (itemClickListener != null) {
+                        itemClickListener.onItemLongClick(v, getAdapterPosition());
+                    }
+                    return true;
                 }
             });
 
@@ -81,11 +94,12 @@ public class PlacesAdapter extends android.support.v7.widget.RecyclerView.Adapte
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-
         Result place = mDataset.get(position);
         Photo currentphoto = place.getPhotos().get(0);
         holder.bindMovieData(place.getName(),currentphoto);
-
+        Animation slide_up = AnimationUtils.loadAnimation(context,
+                R.anim.slide_up);
+        holder.itemView.startAnimation(slide_up);
     }
 
     @Override
@@ -95,6 +109,7 @@ public class PlacesAdapter extends android.support.v7.widget.RecyclerView.Adapte
 
     public interface onItemClickListener {
         void onItemClick(View view, int position);
+        void onItemLongClick(View view,int position);
     }
 
     public void setOnItemClickListener(final onItemClickListener mitemClickListener) {

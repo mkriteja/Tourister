@@ -14,11 +14,14 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 
 import com.github.florent37.materialviewpager.MaterialViewPager;
 import com.github.florent37.materialviewpager.MaterialViewPagerHelper;
 import com.github.florent37.materialviewpager.adapter.RecyclerViewMaterialAdapter;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,10 +32,6 @@ import DataModel.Place;
 import DataModel.Result;
 import retrofit2.Call;
 
-
-/**
- * A simple {@link Fragment} subclass.
- */
 public class PhotoFragment extends Fragment {
 
 
@@ -43,6 +42,7 @@ public class PhotoFragment extends Fragment {
     private List<String> photoreferenceslist;
     private AtomicInteger counter = new AtomicInteger(0);
     private int placecount;
+    private FrameLayout progressBar;
     OnPhotoInteractionListener mListener;
 
     public PhotoFragment() {
@@ -53,8 +53,10 @@ public class PhotoFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_photo, container, false);
-
+        final View rootView = inflater.inflate(R.layout.fragment_photo, container, false);
+        progressBar = (FrameLayout) rootView.findViewById(R.id.photoprogress);
+        progressBar.setVisibility(View.VISIBLE);
+        new DownloadPlaces().execute();
         photorecyclerview = (RecyclerView) rootView.findViewById(R.id.photorecycler);
         photorecyclerview.setHasFixedSize(true);
         gridLayoutManager = new GridLayoutManager(getActivity(), 3, GridLayoutManager.VERTICAL, false);
@@ -64,24 +66,17 @@ public class PhotoFragment extends Fragment {
         photomaterialpadapter = new RecyclerViewMaterialAdapter(photoAdapter);
         photorecyclerview.setAdapter(photomaterialpadapter);
         MaterialViewPagerHelper.registerRecyclerView(getActivity(), photorecyclerview, null);
-
         photoAdapter.setOnItemClickListener(new PhotoAdapter.onItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
-                mListener.onPhotoInteraction(position,view);
+                mListener.onPhotoInteraction(position, view);
             }
         });
         return rootView;
     }
 
-    public void dataAvailable(ArrayList<String> data) {
-        placecount = data.size();
-        for (String place : data) {
-            new DownloadPlaceDetails(place).execute();
-        }
-    }
-
     private void setUpPhotos() {
+        progressBar.setVisibility(View.GONE);
         photomaterialpadapter.notifyDataSetChanged();
     }
 
@@ -94,6 +89,7 @@ public class PhotoFragment extends Fragment {
 
         protected DataModel.Result doInBackground(Void... values) {
 
+
             PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
             Call<Place> call = service.getPlacesDetails(placeid, AppManager.getApiKey());
             try {
@@ -105,11 +101,13 @@ public class PhotoFragment extends Fragment {
         }
 
         protected void onPostExecute(DataModel.Result tresult) {
-            for (Photo p : tresult.getPhotos()) {
-                photoreferenceslist.add(p.getPhotoReference());
-            }
-            if (counter.addAndGet(1) == placecount) {
-                setUpPhotos();
+            if (tresult != null && photoreferenceslist!=null) {
+                for (Photo p : tresult.getPhotos()) {
+                    photoreferenceslist.add(p.getPhotoReference());
+                }
+                if (counter.addAndGet(1) == placecount) {
+                    setUpPhotos();
+                }
             }
         }
     }
@@ -133,5 +131,38 @@ public class PhotoFragment extends Fragment {
 
     public interface OnPhotoInteractionListener {
         void onPhotoInteraction(int position, View view);
+    }
+
+    private class DownloadPlaces extends AsyncTask<Void, Integer, ArrayList<Result>> {
+
+        public DownloadPlaces() {
+        }
+
+        protected ArrayList<Result> doInBackground(Void... values) {
+
+            PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
+            Call<Place> call = service.getPlaces("Museums in New york", AppManager.getApiKey());
+            try {
+                Place res = call.execute().body();
+                return res.getResults();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        protected void onPostExecute(ArrayList<Result> tresults) {
+            ArrayList<String> photolist = new ArrayList<>();
+            for (Result r : tresults) {
+                photolist.add(r.getPlaceId());
+            }
+            dataAvailable(photolist);
+        }
+    }
+
+    public void dataAvailable(ArrayList<String> data) {
+        placecount = data.size();
+        for (String place : data) {
+            new DownloadPlaceDetails(place).execute();
+        }
     }
 }

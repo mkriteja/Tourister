@@ -12,6 +12,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.graphics.Palette;
 import android.transition.Transition;
 import android.util.DisplayMetrics;
 import android.view.View;
@@ -25,7 +26,6 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
-import android.support.v7.graphics.Palette;
 
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
@@ -45,8 +45,7 @@ import java.util.HashSet;
 
 import DataModel.Place;
 import retrofit2.Call;
-import retrofit2.GsonConverterFactory;
-import retrofit2.Retrofit;
+
 
 public class DetailActivity extends Activity {
 
@@ -113,7 +112,7 @@ public class DetailActivity extends Activity {
             @Override
             public void onTransitionEnd(Transition transition) {
                 ImageView hero = (ImageView) findViewById(R.id.photo);
-                ObjectAnimator color = ObjectAnimator.ofArgb(hero.getDrawable(), "tint", R.color.photo_tint, 0);
+                ObjectAnimator color = ObjectAnimator.ofArgb(hero.getDrawable(), "tint",0);
                 color.start();
 
                 findViewById(R.id.info).animate().alpha(1.0f);
@@ -127,8 +126,7 @@ public class DetailActivity extends Activity {
     @Override
     public void onBackPressed() {
         ImageView hero = (ImageView) findViewById(R.id.photo);
-        ObjectAnimator color = ObjectAnimator.ofArgb(hero.getDrawable(), "tint",
-                0, R.color.photo_tint);
+        ObjectAnimator color = ObjectAnimator.ofArgb(hero.getDrawable(), "tint", 0);
         color.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -144,6 +142,8 @@ public class DetailActivity extends Activity {
     private void setupText() {
         titleView.setText(getIntent().getStringExtra("title"));
         placeratingbar.setRating(placeresult.getRating());
+        if(!placeresult.getOpeningHours().getOpenNow())
+            placesaccesstimeView.setText("Closed");
         placeratincountView.setText(placeresult.getUserRatingsTotal()+" Reviews");
         placetypeView.setText(placeresult.getTypes().get(0));
         placesaddressView.setText(placeresult.getFormattedAddress());
@@ -195,31 +195,31 @@ public class DetailActivity extends Activity {
     }
 
     private void colorize(Bitmap photo) {
-        Palette palette = Palette.generate(photo);
+        Palette palette = Palette.from(photo).generate();
         applyPalette(palette);
     }
 
     private void applyPalette(Palette palette) {
-        getWindow().setBackgroundDrawable(new ColorDrawable(palette.getDarkMutedColor().getRgb()));
+        int DEFAULT_VAL = getResources().getColor(R.color.blue,null);
+        getWindow().setBackgroundDrawable(new ColorDrawable(palette.getDarkMutedColor(DEFAULT_VAL)));
+        titleView.setTextColor(palette.getVibrantColor(DEFAULT_VAL));
+        placesaccesstimeView.setTextColor(palette.getLightMutedColor(DEFAULT_VAL));
+        placesaddressView.setTextColor(palette.getLightMutedColor(DEFAULT_VAL));
+        placeswebsiteView.setTextColor(palette.getLightMutedColor(DEFAULT_VAL));
+        placenumberView.setTextColor(palette.getLightMutedColor(DEFAULT_VAL));
+        placeratincountView.setTextColor(palette.getLightVibrantColor(DEFAULT_VAL));
 
-        titleView.setTextColor(palette.getVibrantColor().getRgb());
-        placesaccesstimeView.setTextColor(palette.getLightMutedColor().getRgb());
-        placesaddressView.setTextColor(palette.getLightMutedColor().getRgb());
-        placeswebsiteView.setTextColor(palette.getLightMutedColor().getRgb());
-        placenumberView.setTextColor(palette.getLightMutedColor().getRgb());
-        placeratincountView.setTextColor(palette.getLightVibrantColor().getRgb());
-
-        colorRipple(R.id.info, palette.getDarkMutedColor().getRgb(),
-                palette.getDarkVibrantColor().getRgb());
-        colorRipple(R.id.star, palette.getMutedColor().getRgb(),
-                palette.getVibrantColor().getRgb());
+        colorRipple(R.id.info, palette.getDarkMutedColor(DEFAULT_VAL),
+                palette.getDarkVibrantColor(DEFAULT_VAL));
+        colorRipple(R.id.star, palette.getMutedColor(DEFAULT_VAL),
+                palette.getVibrantColor(DEFAULT_VAL));
 
         View infoView = findViewById(R.id.information_container);
-        infoView.setBackgroundColor(palette.getLightMutedColor().getRgb());
+        infoView.setBackgroundColor(palette.getLightMutedColor(DEFAULT_VAL));
 
         AnimatedPathView star = (AnimatedPathView) findViewById(R.id.star_container);
-        star.setFillColor(palette.getVibrantColor().getRgb());
-        star.setStrokeColor(palette.getLightVibrantColor().getRgb());
+        star.setFillColor(palette.getVibrantColor(DEFAULT_VAL));
+        star.setStrokeColor(palette.getLightVibrantColor(DEFAULT_VAL));
     }
 
     private void colorRipple(int id, int bgColor, int tintColor) {

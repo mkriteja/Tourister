@@ -3,7 +3,11 @@ package com.example.user.tourister;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.Image;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.provider.ContactsContract;
 import android.support.annotation.LayoutRes;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
@@ -18,7 +22,9 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.transition.Explode;
 import android.transition.Fade;
+import android.transition.Slide;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
@@ -28,32 +34,30 @@ import com.github.florent37.materialviewpager.header.HeaderDesign;
 
 import java.util.ArrayList;
 
-public class SliderActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, PlacesFragment.OnDataAvailable, PhotoFragment.OnPhotoInteractionListener {
+public class SliderActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,PhotoFragment.OnPhotoInteractionListener {
 
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
     private MaterialViewPager mViewPager;
-    private PhotoFragment photofragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_slider);
 
-        photofragment = new PhotoFragment();
         mViewPager = (MaterialViewPager) findViewById(R.id.materialViewPager);
         mViewPager.setMaterialViewPagerListener(new MaterialViewPager.Listener() {
             @Override
             public HeaderDesign getHeaderDesign(int page) {
                 switch (page) {
                     case 0:
-                        return HeaderDesign.fromColorResAndUrl(
+                        return HeaderDesign.fromColorResAndDrawable(
                                 R.color.blue,
-                                "http://cdn1.tnwcdn.com/wp-content/blogs.dir/1/files/2014/06/wallpaper_51.jpg");
+                                getDrawable(R.drawable.icon1));
                     case 1:
                         return HeaderDesign.fromColorResAndUrl(
                                 R.color.green,
-                                "https://fs01.androidpit.info/a/63/0e/android-l-wallpapers-630ea6-h900.jpg");
+                                "http://techegis.com/wp-content/uploads/2014/09/elegant_qhd_lg_g3_wallpapers_07.jpg");
                     case 2:
                         return HeaderDesign.fromColorResAndUrl(
                                 R.color.cyan,
@@ -71,13 +75,14 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
         if (toolbar != null) {
             setSupportActionBar(toolbar);
-
             ActionBar actionBar = getSupportActionBar();
-            actionBar.setDisplayHomeAsUpEnabled(false);
-            actionBar.setDisplayShowHomeEnabled(true);
-            actionBar.setDisplayShowTitleEnabled(true);
-            actionBar.setDisplayUseLogoEnabled(false);
-            actionBar.setHomeButtonEnabled(true);
+            if(actionBar!=null) {
+                actionBar.setDisplayHomeAsUpEnabled(false);
+                actionBar.setDisplayShowHomeEnabled(true);
+                actionBar.setDisplayShowTitleEnabled(true);
+                actionBar.setDisplayUseLogoEnabled(false);
+                actionBar.setHomeButtonEnabled(true);
+            }
         }
 
         ViewPager viewPager = mViewPager.getViewPager();
@@ -129,7 +134,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         @Override
         public Fragment getItem(int position) {
             if (position == 0) return PlacesFragment.newInstance();
-            else if (position == 1) return photofragment;
+            else if (position == 1) return new PhotoFragment();
             else if (position == 2) return FavFragment.newInstance();
             return new BlankFragment();
         }
@@ -148,23 +153,16 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         }
     }
 
-    public void onDataSaved(ArrayList<String> data) {
-        photofragment.dataAvailable(data);
-    }
-
     public void onPhotoInteraction(int position, View sharedImage) {
-        PhotoDetailFragment details = new PhotoDetailFragment();
-        details.setSharedElementEnterTransition(new DetailsTransition());
-        details.setEnterTransition(new Fade());
-        //details.setEnterTransition(new Slide());
-        details.setExitTransition(new Fade());
-        details.setSharedElementReturnTransition(new DetailsTransition());
-        AppManager.setSelectedPhoto(((BitmapDrawable)((ImageView) sharedImage.findViewById(R.id.cardimage)).getDrawable()).getBitmap());
-        getSupportFragmentManager().beginTransaction()
-                .addSharedElement(sharedImage, sharedImage.getTransitionName())
-                .replace(R.id.container, details)
-                .addToBackStack(null)
-                .commit();
+
+        AppManager.setSelectedPhoto(((BitmapDrawable)((ImageView)sharedImage).getDrawable()).getBitmap());
+        AppManager.setTransitionName(sharedImage.getTransitionName());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            ActivityOptionsCompat options = ActivityOptionsCompat.
+                    makeSceneTransitionAnimation(this, sharedImage, sharedImage.getTransitionName());
+            startActivity(new Intent(this, PhotoDetailActivity.class), options.toBundle());
+
+        }
     }
 
 }

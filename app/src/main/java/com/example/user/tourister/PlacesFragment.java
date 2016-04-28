@@ -1,9 +1,7 @@
 package com.example.user.tourister;
 
 
-import android.app.Activity;
 import android.app.ActivityOptions;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
@@ -14,7 +12,9 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 
 import com.github.florent37.materialviewpager.MaterialViewPagerHelper;
 import com.github.florent37.materialviewpager.adapter.RecyclerViewMaterialAdapter;
@@ -25,60 +25,68 @@ import java.util.ArrayList;
 import DataModel.Place;
 import DataModel.Result;
 import retrofit2.Call;
-import retrofit2.GsonConverterFactory;
-import retrofit2.Retrofit;
 
 
-/**
- * A simple {@link Fragment} subclass.
- */
 public class PlacesFragment extends Fragment {
 
     private RecyclerView recyclerView;
-    private PlacesAdapter padapter;
-    private LinearLayoutManager mLayoutManager;
-    private RecyclerViewMaterialAdapter tempadapter;
+    private RecyclerViewMaterialAdapter materialAdapter;
     private ArrayList<Result> places;
-    OnDataAvailable onDataAvailable;
+    private ProgressBar progressBar;
 
     public PlacesFragment() {
 
     }
+
     public static PlacesFragment newInstance() {
-        PlacesFragment fragment = new PlacesFragment();
-        return fragment;
+        return new PlacesFragment();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_places, container, false);
+        progressBar = (ProgressBar) rootView.findViewById(R.id.placesprogressbar);
+        progressBar.setVisibility(View.VISIBLE);
         recyclerView = (RecyclerView) rootView.findViewById(R.id.recycler);
         recyclerView.setHasFixedSize(true);
-        mLayoutManager = new LinearLayoutManager(getActivity());
+        LinearLayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(mLayoutManager);
+        recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        progressBar.setVisibility(View.GONE);
+                        recyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    }
+                });
         places = new ArrayList<>();
-        padapter = new PlacesAdapter(getActivity(),places);
-        tempadapter = new RecyclerViewMaterialAdapter(padapter);
-        recyclerView.setAdapter(tempadapter);
+        PlacesAdapter padapter = new PlacesAdapter(getActivity(), places);
+        materialAdapter = new RecyclerViewMaterialAdapter(padapter);
+        recyclerView.setAdapter(materialAdapter);
         MaterialViewPagerHelper.registerRecyclerView(getActivity(), recyclerView, null);
-        new DownloadPlaces(padapter).execute();
+        new DownloadPlaces(materialAdapter).execute();
         padapter.setOnItemClickListener(new PlacesAdapter.onItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
-                position = position-1;
+                position = position - 1;
                 ImageView hero = (ImageView) view.findViewById(R.id.placeimage);
-                Intent intent = new Intent(getActivity(),DetailActivity.class);
-                intent.putExtra("lat",places.get(position).getGeometry().getLocation().getLat());
-                intent.putExtra("lng",places.get(position).getGeometry().getLocation().getLng());
+                Intent intent = new Intent(getActivity(), DetailActivity.class);
+                intent.putExtra("lat", places.get(position).getGeometry().getLocation().getLat());
+                intent.putExtra("lng", places.get(position).getGeometry().getLocation().getLng());
                 intent.putExtra("zoom", 15.0f);
-                intent.putExtra("title",places.get(position).getName());
-                intent.putExtra("placeid",places.get(position).getPlaceId());
-                intent.putExtra("photo",R.drawable.photo1);
+                intent.putExtra("title", places.get(position).getName());
+                intent.putExtra("placeid", places.get(position).getPlaceId());
+                intent.putExtra("photo", R.drawable.photo1);
                 AppManager.setsPhotoCache(((BitmapDrawable) hero.getDrawable()).getBitmap());
                 ActivityOptions options =
                         ActivityOptions.makeSceneTransitionAnimation(getActivity(), hero, "photo_hero");
                 startActivity(intent, options.toBundle());
+            }
+
+            @Override
+            public void onItemLongClick(View view, int position) {
+
             }
         });
 
@@ -87,57 +95,32 @@ public class PlacesFragment extends Fragment {
 
 
     private class DownloadPlaces extends AsyncTask<Void, Integer, ArrayList<Result>> {
-        private final WeakReference<PlacesAdapter> adapterWeakReference;
+        private final WeakReference<RecyclerViewMaterialAdapter> adapterWeakReference;
 
-        public DownloadPlaces(PlacesAdapter adapter){
+        public DownloadPlaces(RecyclerViewMaterialAdapter adapter) {
             adapterWeakReference = new WeakReference<>(adapter);
         }
 
         protected ArrayList<Result> doInBackground(Void... values) {
 
             PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
-            Call<Place> call = service.getPlaces("Museums in New york",AppManager.getApiKey());
+            Call<Place> call = service.getPlaces("Museums in New york", AppManager.getApiKey());
             try {
-             Place res = call.execute().body();
+                Place res = call.execute().body();
                 return res.getResults();
-            }catch (Exception e){
+            } catch (Exception e) {
                 return null;
             }
         }
 
         protected void onPostExecute(ArrayList<Result> tresults) {
-            places.clear();
             places.addAll(tresults);
             if (adapterWeakReference != null) {
-                final PlacesAdapter adapter = adapterWeakReference.get();
+                final RecyclerViewMaterialAdapter adapter = adapterWeakReference.get();
                 if (adapter != null) {
                     adapter.notifyDataSetChanged();
-                    tempadapter.notifyDataSetChanged();
                 }
             }
-            ArrayList<String> photolist = new ArrayList<>();
-            for(Result r:places){
-                photolist.add(r.getPlaceId());
-            }
-            onDataAvailable.onDataSaved(photolist);
         }
     }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-
-        try {
-            onDataAvailable = (OnDataAvailable) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context.toString()
-                    + " must implement OnHeadlineSelectedListener");
-        }
-
-    }
-
-    public interface OnDataAvailable {
-        void onDataSaved(ArrayList<String> data);
-    }
-
 }

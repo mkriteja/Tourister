@@ -23,6 +23,9 @@ public class Result {
     @SerializedName("name")
     @Expose
     private String name;
+    @SerializedName("opening_hours")
+    @Expose
+    private OpeningHours openingHours;
     @SerializedName("photos")
     @Expose
     private List<Photo> photos = new ArrayList<Photo>();
@@ -137,6 +140,11 @@ public class Result {
      * @return
      *     The photos
      */
+
+    public OpeningHours getOpeningHours() {
+        return openingHours;
+    }
+
     public List<Photo> getPhotos() {
         return photos;
     }

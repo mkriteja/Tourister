@@ -2,16 +2,25 @@ package com.example.user.tourister;
 
 
 import android.app.ActivityOptions;
+import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
@@ -20,9 +29,11 @@ import com.firebase.client.Query;
 import com.firebase.client.ValueEventListener;
 import com.github.florent37.materialviewpager.MaterialViewPagerHelper;
 import com.github.florent37.materialviewpager.adapter.RecyclerViewMaterialAdapter;
+import com.victor.loading.book.BookLoading;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Map;
 
 
 import DataModel.Place;
@@ -37,6 +48,8 @@ public class FavFragment extends android.support.v4.app.Fragment {
     private LinearLayoutManager mLayoutManager;
     private RecyclerViewMaterialAdapter favmaterialpadapter;
     private ArrayList<Result> fplaces;
+    private ImageView deleteView;
+    private FrameLayout progressbar;
 
     public FavFragment() {
 
@@ -51,14 +64,16 @@ public class FavFragment extends android.support.v4.app.Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_fav, container, false);
-
+        final View rootView = inflater.inflate(R.layout.fragment_fav, container, false);
+        progressbar = (FrameLayout) rootView.findViewById(R.id.favprogress);
+        progressbar.setVisibility(View.VISIBLE);
         favrecyclerView = (RecyclerView) rootView.findViewById(R.id.favrecycler);
         favrecyclerView.setHasFixedSize(true);
 
         mLayoutManager = new LinearLayoutManager(getActivity());
         favrecyclerView.setLayoutManager(mLayoutManager);
 
+        deleteView = (ImageView) rootView.findViewById(R.id.deleteicon);
         fplaces = new ArrayList<>();
 
         favpadapter = new PlacesAdapter(getActivity(),fplaces);
@@ -85,9 +100,51 @@ public class FavFragment extends android.support.v4.app.Fragment {
                         ActivityOptions.makeSceneTransitionAnimation(getActivity(), hero, "photo_hero");
                 startActivity(intent, options.toBundle());
             }
+            @Override
+            public void onItemLongClick(View view,int position){
+                deleteView.setVisibility(View.VISIBLE);
+                ClipData data = ClipData.newPlainText("Position",String.valueOf(position));
+                View.DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(view);
+                view.startDrag(data, shadowBuilder, view, position);
+            }
+        });
+        deleteView.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch (event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        ((View)event.getLocalState()).setVisibility(View.INVISIBLE);
+                        break;
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        break;
+                    case DragEvent.ACTION_DRAG_EXITED:
+                        break;
+                    case DragEvent.ACTION_DROP:
+                        int pos = Integer.parseInt(event.getClipData().getItemAt(0).getText().toString());
+                        fplaces.remove(pos-1);
+                        favmaterialpadapter.notifyItemRemoved(pos);
+                        updateFirebase();
+                        break;
+                    case DragEvent.ACTION_DRAG_ENDED:
+                        v.setVisibility(View.INVISIBLE);
+                        ((View)event.getLocalState()).setVisibility(View.VISIBLE);
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
         });
         getPlacesFromFirebase();
         return rootView;
+    }
+
+    private void updateFirebase(){
+        ArrayList<String> remainingplaceids = new ArrayList<>();
+        for(Result r:fplaces){
+            remainingplaceids.add(r.getPlaceId());
+        }
+        AppManager.getRef().child(AppManager.getUseremail()).child("places").setValue(remainingplaceids);
     }
 
     private void getPlacesFromFirebase(){
@@ -98,7 +155,7 @@ public class FavFragment extends android.support.v4.app.Fragment {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if(dataSnapshot.getChildrenCount()>0){
                     ArrayList<String> favplaces = (ArrayList<String>) dataSnapshot.getValue();
-                    new DownloadFavPlaces(favplaces,favpadapter).execute();
+                    new DownloadFavPlaces(favplaces,favmaterialpadapter).execute();
                 }
             }
 
@@ -111,9 +168,9 @@ public class FavFragment extends android.support.v4.app.Fragment {
     private class DownloadFavPlaces extends AsyncTask<Void, Integer, ArrayList<Result>> {
 
         private ArrayList<String> fplaceids;
-        private final WeakReference<PlacesAdapter> adapterWeakReference;
+        private final WeakReference<RecyclerViewMaterialAdapter> adapterWeakReference;
 
-        public DownloadFavPlaces(ArrayList<String> placesids,PlacesAdapter adapter){
+        public DownloadFavPlaces(ArrayList<String> placesids,RecyclerViewMaterialAdapter adapter){
             fplaceids = placesids;
             adapterWeakReference = new WeakReference<>(adapter);
         }
@@ -138,10 +195,10 @@ public class FavFragment extends android.support.v4.app.Fragment {
             fplaces.clear();
             fplaces.addAll(results);
             if (adapterWeakReference != null) {
-                final PlacesAdapter adapter = adapterWeakReference.get();
+                final RecyclerViewMaterialAdapter adapter = adapterWeakReference.get();
                 if (adapter != null) {
+                    progressbar.setVisibility(View.GONE);
                     adapter.notifyDataSetChanged();
-                    favmaterialpadapter.notifyDataSetChanged();
                 }
             }
         }
