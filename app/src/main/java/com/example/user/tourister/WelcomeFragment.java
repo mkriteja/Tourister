@@ -5,12 +5,16 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.facebook.AccessToken;
 import com.facebook.AccessTokenTracker;
@@ -26,8 +30,14 @@ import com.firebase.client.FirebaseError;
 import com.firebase.client.Query;
 import com.firebase.client.ValueEventListener;
 
+import java.util.Map;
+
 
 public class WelcomeFragment extends Fragment {
+
+    private static final String USER_CREATION_SUCCESS =  "Successfully created user";
+    private static final String USER_CREATION_ERROR =  "User creation error";
+    private static final String EMAIL_INVALID =  "email is invalid :";
 
     //Facebook
     private LoginButton loginButton;
@@ -43,6 +53,10 @@ public class WelcomeFragment extends Fragment {
     private EditText loginView;
     private EditText passwordView;
     private Button login;
+    private TextView createAccount;
+    private EditText userNameET;
+    private EditText passwordET;
+    private EditText nameET;
 
     private ProgressDialog mAuthProgressDialog;
     private OnFragmentInteractionListener mListener;
@@ -60,11 +74,11 @@ public class WelcomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_welcome, container, false);
-
         loginView = (EditText) rootView.findViewById(R.id.email_ed);
         passwordView = (EditText) rootView.findViewById(R.id.pwd_ed);
         login = (Button) rootView.findViewById(R.id.login);
         loginButton = (LoginButton) rootView.findViewById(R.id.fblogin);
+        createAccount = (TextView) rootView.findViewById(R.id.newAccount);
 
         mFirebaseRef = new Firebase(getResources().getString(R.string.firebase_url));
         mFacebookCallbackManager = CallbackManager.Factory.create();
@@ -117,6 +131,35 @@ public class WelcomeFragment extends Fragment {
             }
         });
         mFirebaseRef.addAuthStateListener(mAuthStateListener);
+
+        createAccount.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LayoutInflater li = LayoutInflater.from(getContext());
+                final View DialogView = li.inflate(
+                        R.layout.new_account_dialog, null);
+                userNameET = (EditText) DialogView.findViewById(R.id.acc_mail);
+                passwordET = (EditText) DialogView.findViewById(R.id.acc_pass_new);
+                nameET = (EditText) DialogView.findViewById(R.id.name);
+                AlertDialog dialog = new AlertDialog.Builder(getActivity())
+                        .setTitle("Create Account").create();
+                dialog.setCancelable(true);
+                dialog.setView(DialogView);
+                dialog.show();
+
+                Button submit = (Button) DialogView.findViewById(R.id.acc_submit);
+                submit.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        createUser();
+                        if(nameET.getText().length() > 0 && userNameET.getText().length() > 0 && passwordET.getText().length() > 0)
+                        {
+                            mListener.onFragmentInteraction();
+                        }
+                    }
+                });
+            }
+        });
         return rootView;
     }
 
@@ -153,31 +196,33 @@ public class WelcomeFragment extends Fragment {
 
     private void setAuthenticatedUser(AuthData authData) {
         if (authData != null) {
-
+            String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.","@@");
             if(authData.getProvider().equals("facebook")){
-                final String name = (String) authData.getProviderData().get("displayName");
-                final String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.","@@");
-                AppManager.setUseremail(email);
-                final Firebase favref = AppManager.getRef();
-                Query queryRef = favref.orderByKey().equalTo(email);
-                queryRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if(dataSnapshot.getChildrenCount()==0){
-                            favref.child(email).child("Name").setValue(name);
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(FirebaseError firebaseError) {
-
-                    }
-                });
+                String name = (String) authData.getProviderData().get("displayName");
+                saveuserDetailsinFirebase(email,name);
             }
-
+            AppManager.setUseremail(email);
             mListener.onFragmentInteraction();
             this.mAuthData = authData;
         }
+    }
+
+    private void saveuserDetailsinFirebase(final String email, final String name){
+        final Firebase favref = AppManager.getRef();
+        Query queryRef = favref.orderByKey().equalTo(email);
+        queryRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.getChildrenCount()==0){
+                    favref.child(email).child("Name").setValue(name);
+                }
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+
+            }
+        });
     }
 
     private class AuthResultHandler implements Firebase.AuthResultHandler {
@@ -220,5 +265,40 @@ public class WelcomeFragment extends Fragment {
 
     public interface OnFragmentInteractionListener {
         void onFragmentInteraction();
+    }
+
+    // Validate email address for new accounts.
+    private boolean isEmailValid(String email) {
+        boolean isGoodEmail = (email != null && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches());
+        if (!isGoodEmail) {
+            userNameET.setError(EMAIL_INVALID + email);
+            return false;
+        }
+        return true;
+    }
+
+    // create a new user in Firebase
+    public void createUser() {
+        if(userNameET.getText() == null ||  !isEmailValid(userNameET.getText().toString())) {
+            return;
+        }
+        mFirebaseRef.createUser(userNameET.getText().toString(), passwordET.getText().toString(),
+                new Firebase.ValueResultHandler<Map<String, Object>>() {
+                    @Override
+                    public void onSuccess(Map<String, Object> result) {
+                        Snackbar snackbar = Snackbar.make(userNameET, USER_CREATION_SUCCESS, Snackbar.LENGTH_SHORT);
+                        snackbar.show();
+                        if(nameET.getText().length() > 0 && userNameET.getText().length() > 0 && passwordET.getText().length() > 0) {
+                            saveuserDetailsinFirebase(userNameET.getText().toString().replaceAll("\\.","@@"),nameET.getText().toString());
+                            mFirebaseRef.authWithPassword(userNameET.getText().toString().trim(), passwordET.getText().toString().trim(), new AuthResultHandler("password"));
+                        }
+
+                    }
+                    @Override
+                    public void onError(FirebaseError firebaseError) {
+                        Snackbar snackbar = Snackbar.make(userNameET, USER_CREATION_ERROR, Snackbar.LENGTH_SHORT);
+                        snackbar.show();
+                    }
+                });
     }
 }

@@ -95,8 +95,7 @@ public class PlacesAdapter extends android.support.v7.widget.RecyclerView.Adapte
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         Result place = mDataset.get(position);
-        Photo currentphoto = place.getPhotos().get(0);
-        holder.bindMovieData(place.getName(),currentphoto);
+        holder.bindMovieData(place.getName(),place.getPhotos().get(0));
         Animation slide_up = AnimationUtils.loadAnimation(context,
                 R.anim.slide_up);
         holder.itemView.startAnimation(slide_up);

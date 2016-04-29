@@ -16,4 +16,7 @@ public interface PlacesInterface {
     @GET("maps/api/place/details/json")
     Call<Place> getPlacesDetails(@Query("placeid") String query,@Query("key") String key);
 
+    @GET("maps/api/place/nearbysearch/json")
+    Call<Place> getCurrentPlacesDetails(@Query("location") String location,@Query("radius") String radius,@Query("type") String type, @Query("key") String key);
+
 }

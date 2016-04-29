@@ -29,7 +29,8 @@
             android:name="com.google.android.maps.v2.API_KEY"
             android:value="AIzaSyAMp0e92zYo7oEcLe8y2mFiqNDR_U7ARvQ" />
 
-        <activity android:name=".SplashActivity">
+        <activity android:name=".SplashActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -45,7 +46,7 @@
         <activity android:name=".SliderActivity" />
         <activity android:name=".DetailActivity" />
         <activity android:name=".PhotoDetailActivity"
-            android:theme="@style/PhotoActivityTheme"></activity>
+            android:theme="@style/PhotoActivityTheme"/>
     </application>
 
 </manifest>

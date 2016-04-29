@@ -6,6 +6,8 @@ import com.firebase.client.Firebase;
 
 import java.util.ArrayList;
 
+import DataModel.Place;
+import retrofit2.Call;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
 
@@ -23,6 +25,8 @@ public class AppManager {
     private static String useremail;
 
     private static Firebase ref = new Firebase("https://tourister.firebaseio.com/");
+
+    private static Call<Place> apicall;
 
     private static AppManager instance = new AppManager();
 
@@ -87,4 +91,15 @@ public class AppManager {
 
         return  retrofit;
     }
+
+
+    public static Call<Place> getApicall() {
+        return AppManager.apicall;
+    }
+
+    public static void setApicall(Call<Place> call) {
+        AppManager.apicall = call;
+    }
+
+
 }

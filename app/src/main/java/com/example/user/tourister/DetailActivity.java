@@ -39,7 +39,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 
-
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -79,7 +78,7 @@ public class DetailActivity extends Activity {
         placeratingbar = (RatingBar) findViewById(R.id.placeratingbar);
 
         ImageButton starbutton = (ImageButton) findViewById(R.id.star);
-        if(!getIntent().getBooleanExtra("favfragment",false)){
+        if (!getIntent().getBooleanExtra("favfragment", false)) {
 
             starbutton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -87,7 +86,7 @@ public class DetailActivity extends Activity {
                     showStar(v);
                 }
             });
-        }else{
+        } else {
             starbutton.setVisibility(View.GONE);
         }
 
@@ -112,7 +111,7 @@ public class DetailActivity extends Activity {
             @Override
             public void onTransitionEnd(Transition transition) {
                 ImageView hero = (ImageView) findViewById(R.id.photo);
-                ObjectAnimator color = ObjectAnimator.ofArgb(hero.getDrawable(), "tint",0);
+                ObjectAnimator color = ObjectAnimator.ofArgb(hero.getDrawable(), "tint", 0);
                 color.start();
 
                 findViewById(R.id.info).animate().alpha(1.0f);
@@ -142,13 +141,35 @@ public class DetailActivity extends Activity {
     private void setupText() {
         titleView.setText(getIntent().getStringExtra("title"));
         placeratingbar.setRating(placeresult.getRating());
-        if(!placeresult.getOpeningHours().getOpenNow())
-            placesaccesstimeView.setText("Closed");
-        placeratincountView.setText(placeresult.getUserRatingsTotal()+" Reviews");
-        placetypeView.setText(placeresult.getTypes().get(0));
-        placesaddressView.setText(placeresult.getFormattedAddress());
-        placeswebsiteView.setText(placeresult.getWebsite());
-        placenumberView.setText(placeresult.getInternationalPhoneNumber());
+        if (placeresult.getOpeningHours() != null) {
+            if (!placeresult.getOpeningHours().getOpenNow())
+                placesaccesstimeView.setText("Closed");
+        } else {
+            placesaccesstimeView.setVisibility(View.GONE);
+        }
+        String ratingtext = placeresult.getUserRatingsTotal() + getString(R.string.reviews);
+        placeratincountView.setText(ratingtext);
+        if (placeresult.getTypes() != null)
+            placetypeView.setText(placeresult.getTypes().get(0));
+        else
+            placetypeView.setVisibility(View.GONE);
+        if (placeresult.getFormattedAddress() != null)
+            placesaddressView.setText(placeresult.getFormattedAddress());
+        else
+            placesaddressView.setVisibility(View.GONE);
+        if (placeresult.getWebsite() != null)
+            placeswebsiteView.setText(placeresult.getWebsite());
+        else
+            placeswebsiteView.setVisibility(View.GONE);
+        if (placeresult.getInternationalPhoneNumber() != null)
+            placenumberView.setText(stingCheck(placeresult.getInternationalPhoneNumber()));
+        else
+            placenumberView.setVisibility(View.GONE);
+    }
+
+    private String stingCheck(String value) {
+        if (value != null) return value;
+        else return "";
     }
 
     private void setupMap() {
@@ -200,7 +221,7 @@ public class DetailActivity extends Activity {
     }
 
     private void applyPalette(Palette palette) {
-        int DEFAULT_VAL = getResources().getColor(R.color.blue,null);
+        int DEFAULT_VAL = getResources().getColor(R.color.blue, null);
         getWindow().setBackgroundDrawable(new ColorDrawable(palette.getDarkMutedColor(DEFAULT_VAL)));
         titleView.setTextColor(palette.getVibrantColor(DEFAULT_VAL));
         placesaccesstimeView.setTextColor(palette.getLightMutedColor(DEFAULT_VAL));
@@ -241,18 +262,18 @@ public class DetailActivity extends Activity {
     private class DownloadPlaceDetails extends AsyncTask<Void, Integer, DataModel.Result> {
         private String placeid;
 
-        public DownloadPlaceDetails(String id){
+        public DownloadPlaceDetails(String id) {
             placeid = id;
         }
 
         protected DataModel.Result doInBackground(Void... values) {
 
             PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
-            Call<Place> call = service.getPlacesDetails(placeid,AppManager.getApiKey());
+            Call<Place> call = service.getPlacesDetails(placeid, AppManager.getApiKey());
             try {
                 Place res = call.execute().body();
                 return res.getResult();
-            }catch (Exception e){
+            } catch (Exception e) {
                 return null;
             }
         }
@@ -287,18 +308,18 @@ public class DetailActivity extends Activity {
         }
     }
 
-    private void addToFirebase(){
+    private void addToFirebase() {
         final Firebase favref = AppManager.getRef().child(AppManager.getUseremail()).child("places");
         Query queryRef = favref.orderByKey();
         queryRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.getChildrenCount()<1){
+                if (dataSnapshot.getChildrenCount() < 1) {
                     favref.child("0").setValue(getIntent().getStringExtra("placeid"));
-                }else {
+                } else {
                     HashSet<String> existingplaceids = new HashSet<>((ArrayList<String>) dataSnapshot.getValue());
-                    if(existingplaceids.add(getIntent().getStringExtra("placeid")))
-                        favref.child(String.valueOf(existingplaceids.size()-1)).setValue(getIntent().getStringExtra("placeid"));
+                    if (existingplaceids.add(getIntent().getStringExtra("placeid")))
+                        favref.child(String.valueOf(existingplaceids.size() - 1)).setValue(getIntent().getStringExtra("placeid"));
                 }
             }
 
@@ -308,6 +329,7 @@ public class DetailActivity extends Activity {
             }
         });
     }
+
     public void showInformation(View view) {
         toggleInformationView(view);
     }
