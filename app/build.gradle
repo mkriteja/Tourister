@@ -40,4 +40,5 @@ dependencies {
     compile 'com.victor:lib:1.0.4'
     compile 'de.hdodenhof:circleimageview:2.0.0'
     compile 'com.github.castorflex.smoothprogressbar:library-circular:1.0.0'
+    compile 'com.firebaseui:firebase-ui:0.3.1'
 }

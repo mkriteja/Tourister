@@ -1,17 +1,23 @@
 package com.example.user.tourister;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Outline;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.graphics.Palette;
 import android.transition.Transition;
 import android.util.DisplayMetrics;
@@ -36,6 +42,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 
@@ -49,6 +56,8 @@ import retrofit2.Call;
 public class DetailActivity extends Activity {
 
     private DataModel.Result placeresult;
+
+    private static final int CALLPHONE_REQUEST_CODE = 10001;
 
     private TextView titleView;
     private TextView placesaccesstimeView;
@@ -76,6 +85,7 @@ public class DetailActivity extends Activity {
         placeratincountView = (TextView) findViewById(R.id.placeratingcount);
         placetypeView = (TextView) findViewById(R.id.placetype);
         placeratingbar = (RatingBar) findViewById(R.id.placeratingbar);
+
 
         ImageButton starbutton = (ImageButton) findViewById(R.id.star);
         if (!getIntent().getBooleanExtra("favfragment", false)) {
@@ -105,6 +115,7 @@ public class DetailActivity extends Activity {
         setupMap();
 
         setOutlines(R.id.star, R.id.info);
+
         applySystemWindowsBottomInset(R.id.container);
 
         getWindow().getEnterTransition().addListener(new TransitionAdapter() {
@@ -161,10 +172,46 @@ public class DetailActivity extends Activity {
             placeswebsiteView.setText(placeresult.getWebsite());
         else
             placeswebsiteView.setVisibility(View.GONE);
-        if (placeresult.getInternationalPhoneNumber() != null)
+        if (placeresult.getInternationalPhoneNumber() != null) {
             placenumberView.setText(stingCheck(placeresult.getInternationalPhoneNumber()));
+            placenumberView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    checkpermission();
+                }
+            });
+        }
         else
             placenumberView.setVisibility(View.GONE);
+    }
+
+    private void checkpermission(){
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CALL_PHONE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CALL_PHONE}, CALLPHONE_REQUEST_CODE);
+
+        }
+        else{
+            Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + placeresult.getInternationalPhoneNumber()));
+            startActivity(intent);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case CALLPHONE_REQUEST_CODE: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    checkpermission();
+
+                }
+            }
+        }
     }
 
     private String stingCheck(String value) {
@@ -173,7 +220,7 @@ public class DetailActivity extends Activity {
     }
 
     private void setupMap() {
-        GoogleMap map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
+        final GoogleMap map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
 
         double lat = getIntent().getDoubleExtra("lat", 37.6329946);
         double lng = getIntent().getDoubleExtra("lng", -122.4938344);
@@ -182,6 +229,17 @@ public class DetailActivity extends Activity {
         LatLng position = new LatLng(lat, lng);
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(position, zoom));
         map.addMarker(new MarkerOptions().position(position));
+        map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                Uri gmmIntentUri = Uri.parse("google.navigation:q="+marker.getPosition().latitude+","+marker.getPosition().longitude);
+                Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                mapIntent.setPackage("com.google.android.apps.maps");
+                startActivity(mapIntent);
+                return true;
+            }
+        });
+
     }
 
     private void setOutlines(int star, int info) {

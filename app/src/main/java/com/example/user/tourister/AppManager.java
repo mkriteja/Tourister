@@ -18,11 +18,15 @@ public class AppManager {
 
     private static Bitmap sPhotoCache;
 
+    private static Bitmap tourPhotoCache;
+
     private static Bitmap selectedPhoto;
 
     private static String transitionName;
 
-    private static String useremail;
+    private static String useremail="";
+
+    private static String username="";
 
     private static Firebase ref = new Firebase("https://tourister.firebaseio.com/");
 
@@ -101,5 +105,19 @@ public class AppManager {
         AppManager.apicall = call;
     }
 
+    public static String getUsername() {
+        return username;
+    }
 
+    public static void setUsername(String username) {
+        AppManager.username = username;
+    }
+
+    public static Bitmap getTourPhotoCache() {
+        return tourPhotoCache;
+    }
+
+    public static void setTourPhotoCache(Bitmap tourPhotoCache) {
+        AppManager.tourPhotoCache = tourPhotoCache;
+    }
 }

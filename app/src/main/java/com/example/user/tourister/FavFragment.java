@@ -42,6 +42,7 @@ public class FavFragment extends android.support.v4.app.Fragment {
     private ArrayList<Result> fplaces;
     private ImageView deleteView;
     private FrameLayout progressbar;
+    private FrameLayout nofavorites;
 
     public FavFragment() {
 
@@ -64,11 +65,13 @@ public class FavFragment extends android.support.v4.app.Fragment {
         progressbar.setVisibility(View.VISIBLE);
         favrecyclerView = (RecyclerView) rootView.findViewById(R.id.favrecycler);
         favrecyclerView.setHasFixedSize(true);
+        nofavorites = (FrameLayout) rootView.findViewById(R.id.nofavroites);
 
         mLayoutManager = new LinearLayoutManager(getActivity());
         favrecyclerView.setLayoutManager(mLayoutManager);
 
         deleteView = (ImageView) rootView.findViewById(R.id.deleteicon);
+
         fplaces = (ArrayList<Result>) getArguments().getSerializable("favoriteplaces");
 
         favpadapter = new PlacesAdapter(getActivity(), fplaces);
@@ -118,13 +121,13 @@ public class FavFragment extends android.support.v4.app.Fragment {
                     case DragEvent.ACTION_DROP:
                         int pos = Integer.parseInt(event.getClipData().getItemAt(0).getText().toString());
                         fplaces.remove(pos - 1);
-                        getArguments().putSerializable("favoriteplaces",fplaces);
+                        getArguments().putSerializable("favoriteplaces", fplaces);
                         favmaterialpadapter.notifyItemRemoved(pos);
                         updateFirebase();
                         break;
                     case DragEvent.ACTION_DRAG_ENDED:
-                        v.setVisibility(View.INVISIBLE);
                         ((View) event.getLocalState()).setVisibility(View.VISIBLE);
+                        deleteView.setVisibility(View.GONE);
                         break;
                     default:
                         break;
@@ -142,6 +145,9 @@ public class FavFragment extends android.support.v4.app.Fragment {
             remainingplaceids.add(r.getPlaceId());
         }
         AppManager.getRef().child(AppManager.getUseremail()).child("places").setValue(remainingplaceids);
+        if (remainingplaceids.isEmpty()) {
+            nofavorites.setVisibility(View.VISIBLE);
+        }
     }
 
     private void getPlacesFromFirebase() {
@@ -151,8 +157,12 @@ public class FavFragment extends android.support.v4.app.Fragment {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getChildrenCount() > 0) {
+                    nofavorites.setVisibility(View.GONE);
                     ArrayList<String> favplaces = (ArrayList<String>) dataSnapshot.getValue();
                     new DownloadFavPlaces(favplaces, favmaterialpadapter).execute();
+                } else {
+                    nofavorites.setVisibility(View.VISIBLE);
+                    progressbar.setVisibility(View.GONE);
                 }
             }
 

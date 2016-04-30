@@ -1,12 +1,20 @@
 package com.example.user.tourister;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -17,21 +25,35 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Base64;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.firebase.client.DataSnapshot;
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.ValueEventListener;
 import com.github.florent37.materialviewpager.MaterialViewPager;
 import com.github.florent37.materialviewpager.header.HeaderDesign;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 
 import DataModel.Place;
 import retrofit2.Call;
@@ -40,15 +62,29 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         GoogleApiClient.ConnectionCallbacks, com.google.android.gms.location.LocationListener {
 
     private static final int LOCATION_REQUEST_CODE = 1000;
+    private static final String PREFS_LAST_IMG = "prefs_last_img";
+    private static double DEFAULT_LATITUDE = 37.6329946 ;
+    private static double DEFAULT_LONGITUDE= -122.4938344;
+
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
     private MaterialViewPager mViewPager;
     private GoogleApiClient mGoogleApiClient;
     private android.location.Location lastLocation;
+    private FloatingActionButton floatingActionButton;
+
     private Fragment placesFragmentinstance;
     private Fragment photoFragmentinstance;
     private Fragment favoriteFragmentinstance;
+    private Fragment tourFragmentInstance;
+
     private boolean savedstatus = false;
+    private de.hdodenhof.circleimageview.CircleImageView circleImageView;
+    private SharedPreferences mPreferences;
+    private TextView camera;
+    private TextView gallery;
+    private boolean iscamera = false;
+
 
 
     @Override
@@ -65,18 +101,39 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         if (savedInstanceState != null) {
             placesFragmentinstance = getSupportFragmentManager().getFragment(savedInstanceState, "places");
             photoFragmentinstance = getSupportFragmentManager().getFragment(savedInstanceState, "photos");
-            favoriteFragmentinstance = getSupportFragmentManager().getFragment(savedInstanceState,"favorites");
+            favoriteFragmentinstance = getSupportFragmentManager().getFragment(savedInstanceState, "favorites");
+            tourFragmentInstance = getSupportFragmentManager().getFragment(savedInstanceState,"tours");
             savedstatus = savedInstanceState.getBoolean("savedstatus");
             if (placesFragmentinstance == null) {
                 placesFragmentinstance = PlacesFragment.newInstance();
+            }
+            if (photoFragmentinstance == null) {
                 photoFragmentinstance = PhotoFragment.newInstance();
+            }
+            if (favoriteFragmentinstance == null) {
                 favoriteFragmentinstance = FavFragment.newInstance();
+            }
+            if(tourFragmentInstance == null){
+                tourFragmentInstance = TourFragment.newInstance();
             }
         } else {
             placesFragmentinstance = PlacesFragment.newInstance();
             photoFragmentinstance = PhotoFragment.newInstance();
             favoriteFragmentinstance = FavFragment.newInstance();
+            tourFragmentInstance = TourFragment.newInstance();
         }
+        floatingActionButton= (FloatingActionButton) findViewById(R.id.fab);
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(lastLocation!=null){
+                    String currlocation = lastLocation.getLatitude()+","+lastLocation.getLongitude();
+                    PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
+                    Call<Place> call = service.getCurrentPlacesDetails(currlocation, "500", "attractions", AppManager.getApiKey());
+                    callPlacesExecuteAsync(call);
+                }
+            }
+        });
         mViewPager = (MaterialViewPager) findViewById(R.id.materialViewPager);
         mViewPager.setMaterialViewPagerListener(new MaterialViewPager.Listener() {
             @Override
@@ -122,8 +179,9 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         mViewPager.getPagerTitleStrip().setViewPager(mViewPager.getViewPager());
 
         navigationView = (NavigationView) findViewById(R.id.navigation);
-        if (navigationView != null)
-            navigationView.setNavigationItemSelectedListener(this);
+
+        final View headerview = navigationView.getHeaderView(0);
+        navigationView.setNavigationItemSelectedListener(this);
 
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer);
@@ -139,20 +197,140 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         drawerLayout.addDrawerListener(actionBarDrawerToggle);
 
         actionBarDrawerToggle.syncState();
+        circleImageView = (de.hdodenhof.circleimageview.CircleImageView) headerview.findViewById(R.id.circle);
+        ((TextView) headerview.findViewById(R.id.useremailheader)).setText(AppManager.getUseremail().replaceAll("@@", "."));
+        final Firebase favref = AppManager.getRef().child(AppManager.getUseremail()).child("Name");
+        favref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                String username = (String) snapshot.getValue();
+                if (!username.isEmpty())
+                    ((TextView) headerview.findViewById(R.id.usernameheader)).setText(username);
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+            }
+        });
+        mPreferences = getSharedPreferences(AppManager.getUseremail() + PREFS_LAST_IMG, Context.MODE_PRIVATE);
+        String tempimage = mPreferences.getString("image", "");
+        if (!tempimage.isEmpty()) {
+            byte[] decodedString = Base64.decode(tempimage, Base64.DEFAULT);
+            circleImageView.setImageBitmap(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length));
+        }
+
+        circleImageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final View DialogView = getLayoutInflater().inflate(R.layout.camera, null);
+
+                camera = (TextView) DialogView.findViewById(R.id.camera);
+                gallery = (TextView) DialogView.findViewById(R.id.gall);
+
+                final AlertDialog dialog = new AlertDialog.Builder(SliderActivity.this)
+                        .setTitle("Select an Option").create();
+                dialog.setCancelable(true);
+                dialog.setView(DialogView);
+                dialog.show();
+                camera.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        iscamera = true;
+                        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        startActivityForResult(intent, 0);
+                        dialog.dismiss();
+                    }
+                });
+
+                gallery.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        iscamera = false;
+                        Intent i = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                        startActivityForResult(i, 0);
+                        dialog.dismiss();
+                    }
+                });
+
+            }
+        });
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Bitmap bitmap;
+        if (iscamera) {
+            if (resultCode == RESULT_OK) {
+                bitmap = (Bitmap) data.getExtras().get("data");
+                storeImage(bitmap);
+                circleImageView.setImageBitmap(bitmap);
+            }
+        } else {
+            if (resultCode == RESULT_OK) {
+                Uri imageUri = data.getData();
+                try {
+                    bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                    storeImage(bitmap);
+                    circleImageView.setImageBitmap(bitmap);
+                } catch (IOException e) {
+                    Log.d("gallery", "Error accessing file: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private void storeImage(Bitmap bitmap) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] b = baos.toByteArray();
+        String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
+        SharedPreferences sharedRef = getSharedPreferences(AppManager.getUseremail() + PREFS_LAST_IMG, Context.MODE_PRIVATE);
+        SharedPreferences.Editor edit = sharedRef.edit();
+        edit.putString("image", encodedImage);
+        edit.apply();
+    }
+
+
+    @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-
         int id = item.getItemId();
-
+        PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
+        String currlocation;
+        if(lastLocation!=null) {
+            currlocation = lastLocation.getLatitude() + "," + lastLocation.getLongitude();
+        }else{
+            currlocation = DEFAULT_LATITUDE + "," + DEFAULT_LONGITUDE;
+        }
+        Call<Place> call = null;
         switch (id) {
+            case R.id.task1:
+                call = service.getCurrentPlacesDetails(currlocation, "500", "Architecture", AppManager.getApiKey());
+                break;
+            case R.id.task2:
+                call = service.getCurrentPlacesDetails(currlocation, "500", "Historic Places", AppManager.getApiKey());
+                break;
+            case R.id.task3:
+                call = service.getCurrentPlacesDetails(currlocation, "500", "Life Style", AppManager.getApiKey());
+                break;
+            case R.id.task4:
+                call = service.getCurrentPlacesDetails(currlocation, "500", "Food", AppManager.getApiKey());
+                break;
+            case R.id.task6:
+                call = service.getCurrentPlacesDetails(currlocation, "500", "Art and Museums", AppManager.getApiKey());
+                break;
+            case R.id.task7:
+                finish();
+                break;
+            default:
+                break;
 
         }
-
+        if (call != null)
+            callPlacesExecuteAsync(call);
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
+
 
     public class MyFragmentStateAdapter extends FragmentStatePagerAdapter {
 
@@ -165,10 +343,17 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
         @Override
         public Fragment getItem(int position) {
-            if (position == 0) return placesFragmentinstance;
-            else if (position == 1) return photoFragmentinstance;
-            else if (position == 2) return favoriteFragmentinstance;
-            return new BlankFragment();
+            if (position == 0) {
+                return placesFragmentinstance;
+            } else if (position == 1) {
+                return photoFragmentinstance;
+            } else if (position == 2) {
+                return favoriteFragmentinstance;
+            } else if (position == 3) {
+                return tourFragmentInstance;
+            } else {
+                return null;
+            }
         }
 
         @Override
@@ -183,6 +368,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
             else if (position == 2) return "Favorites";
             else return "Tours";
         }
+
     }
 
     public void onPhotoInteraction(int position, View sharedImage) {
@@ -213,7 +399,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
     @Override
     protected void onPause() {
         super.onPause();
-        if(mGoogleApiClient.isConnected()) {
+        if (mGoogleApiClient.isConnected()) {
             stopLocationUpdates();
             savedstatus = true;
         }
@@ -227,7 +413,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
     @Override
     public void onResume() {
         super.onResume();
-        if (mGoogleApiClient.isConnected() && !savedstatus ) {
+        if (mGoogleApiClient.isConnected() && !savedstatus) {
             startLocationUpdates();
         }
     }
@@ -245,7 +431,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
     @Override
     public void onConnected(Bundle connectionHint) {
-        if(!savedstatus)
+        if (!savedstatus)
             startLocationUpdates();
     }
 
@@ -260,11 +446,11 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         } else {
             android.location.Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                     mGoogleApiClient);
-            if (mLastLocation !=null) {
+            if (mLastLocation != null) {
                 lastLocation = mLastLocation;
                 String currlocation = mLastLocation.getLatitude() + "," + mLastLocation.getLongitude();
                 PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
-                Call<Place> call = service.getCurrentPlacesDetails(currlocation, "10000", "attractions", AppManager.getApiKey());
+                Call<Place> call = service.getCurrentPlacesDetails(currlocation, "500", "attractions", AppManager.getApiKey());
                 callPlacesExecuteAsync(call);
             }
             LocationRequest locationRequest = LocationRequest.create()
@@ -273,7 +459,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
         }
     }
 
-    public void callPlacesExecuteAsync(Call<Place> call){
+    public void callPlacesExecuteAsync(Call<Place> call) {
         ((PlacesFragment) placesFragmentinstance).makeAsyncCall(call);
         ((PhotoFragment) photoFragmentinstance).executeCurrentphotos(call);
     }
@@ -285,6 +471,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
             case LOCATION_REQUEST_CODE: {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startLocationUpdates();
                 } else {
                     PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
                     Call<Place> call = service.getPlaces("Museums in New york", AppManager.getApiKey());
@@ -300,7 +487,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
             lastLocation = location;
             String currlocation = location.getLatitude() + "," + location.getLongitude();
             PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
-            Call<Place> call = service.getCurrentPlacesDetails(currlocation, "10000", "attractions", AppManager.getApiKey());
+            Call<Place> call = service.getCurrentPlacesDetails(currlocation, "500", "attractions", AppManager.getApiKey());
             callPlacesExecuteAsync(call);
         }
     }
@@ -308,15 +495,16 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
-        if (placesFragmentinstance.isAdded())
+        if (placesFragmentinstance != null && placesFragmentinstance.isAdded())
             getSupportFragmentManager().putFragment(savedInstanceState, "places", placesFragmentinstance);
-        if(photoFragmentinstance.isAdded())
+        if (photoFragmentinstance != null && photoFragmentinstance.isAdded())
             getSupportFragmentManager().putFragment(savedInstanceState, "photos", photoFragmentinstance);
-        if(favoriteFragmentinstance.isAdded())
-            getSupportFragmentManager().putFragment(savedInstanceState,"favorites",favoriteFragmentinstance);
-        savedInstanceState.putBoolean("savedstatus",true);
-
+        if (favoriteFragmentinstance != null && favoriteFragmentinstance.isAdded())
+            getSupportFragmentManager().putFragment(savedInstanceState, "favorites", favoriteFragmentinstance);
+        if(tourFragmentInstance !=null && tourFragmentInstance.isAdded()){
+            getSupportFragmentManager().putFragment(savedInstanceState,"tours",tourFragmentInstance);
+        }
+        savedInstanceState.putBoolean("savedstatus", true);
     }
-
 
 }

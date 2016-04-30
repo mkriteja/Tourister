@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group
+        android:id="@+id/menu_top"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/task1"
+            android:checkable="false"
+            android:icon="@drawable/arch"
+            android:title="@string/architecture" />
+        <item
+            android:id="@+id/task2"
+            android:icon="@drawable/history"
+            android:title="@string/historic_places_and_events" />
+        <item
+            android:id="@+id/task3"
+            android:icon="@drawable/life"
+            android:title="@string/lifestyle" />
+        <item
+            android:id="@+id/task4"
+            android:icon="@drawable/food"
+            android:title="@string/foods_drinks_and_fun" />
+
+        <item
+            android:id="@+id/task6"
+            android:icon="@drawable/museum"
+            android:title="@string/art_and_museums" />
+    </group>
+    <group
+        android:id="@+id/menu_below"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/task7"
+            android:icon="@drawable/logouticon"
+            android:title="@string/log_out" />
+    </group>
+
+</menu>

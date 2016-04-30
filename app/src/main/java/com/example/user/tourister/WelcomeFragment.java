@@ -21,6 +21,7 @@ import com.facebook.AccessTokenTracker;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.firebase.client.AuthData;
@@ -38,6 +39,8 @@ public class WelcomeFragment extends Fragment {
     private static final String USER_CREATION_SUCCESS =  "Successfully created user";
     private static final String USER_CREATION_ERROR =  "User creation error";
     private static final String EMAIL_INVALID =  "email is invalid :";
+    private static int REQUEST_CODE = 100;
+    private static boolean loggedIn = false;
 
     //Facebook
     private LoginButton loginButton;
@@ -59,7 +62,8 @@ public class WelcomeFragment extends Fragment {
     private EditText nameET;
 
     private ProgressDialog mAuthProgressDialog;
-    private OnFragmentInteractionListener mListener;
+
+    private AlertDialog createAccdialog;
 
     public WelcomeFragment() {
         // Required empty public constructor
@@ -67,6 +71,10 @@ public class WelcomeFragment extends Fragment {
 
     public static WelcomeFragment newInstance() {
         WelcomeFragment fragment = new WelcomeFragment();
+        Bundle args = new Bundle();
+        args.putString("username","");
+        args.putString("password","");
+        fragment.setArguments(args);
         return fragment;
     }
 
@@ -84,7 +92,6 @@ public class WelcomeFragment extends Fragment {
         mFacebookCallbackManager = CallbackManager.Factory.create();
 
         loginButton.setReadPermissions("email");
-
         loginButton.setFragment(this);
 
         loginButton.registerCallback(mFacebookCallbackManager, new FacebookCallback<LoginResult>() {
@@ -141,11 +148,11 @@ public class WelcomeFragment extends Fragment {
                 userNameET = (EditText) DialogView.findViewById(R.id.acc_mail);
                 passwordET = (EditText) DialogView.findViewById(R.id.acc_pass_new);
                 nameET = (EditText) DialogView.findViewById(R.id.name);
-                AlertDialog dialog = new AlertDialog.Builder(getActivity())
+                createAccdialog = new AlertDialog.Builder(getActivity())
                         .setTitle("Create Account").create();
-                dialog.setCancelable(true);
-                dialog.setView(DialogView);
-                dialog.show();
+                createAccdialog.setCancelable(true);
+                createAccdialog.setView(DialogView);
+                createAccdialog.show();
 
                 Button submit = (Button) DialogView.findViewById(R.id.acc_submit);
                 submit.setOnClickListener(new View.OnClickListener() {
@@ -154,7 +161,8 @@ public class WelcomeFragment extends Fragment {
                         createUser();
                         if(nameET.getText().length() > 0 && userNameET.getText().length() > 0 && passwordET.getText().length() > 0)
                         {
-                            mListener.onFragmentInteraction();
+                            createAccdialog.dismiss();
+                            makeIntentTransition();
                         }
                     }
                 });
@@ -178,7 +186,14 @@ public class WelcomeFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        mFacebookCallbackManager.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == REQUEST_CODE){
+            mFirebaseRef.unauth();
+            LoginManager.getInstance().logOut();
+            loggedIn = false;
+        }else {
+            mFacebookCallbackManager.onActivityResult(requestCode, resultCode, data);
+        }
+
     }
 
     private void onFacebookAccessTokenChange(AccessToken token) {
@@ -196,14 +211,22 @@ public class WelcomeFragment extends Fragment {
 
     private void setAuthenticatedUser(AuthData authData) {
         if (authData != null) {
-            String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.","@@");
+            final String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.","@@");
             if(authData.getProvider().equals("facebook")){
                 String name = (String) authData.getProviderData().get("displayName");
                 saveuserDetailsinFirebase(email,name);
+                AppManager.setUsername(name);
             }
             AppManager.setUseremail(email);
-            mListener.onFragmentInteraction();
+            makeIntentTransition();
             this.mAuthData = authData;
+        }
+    }
+
+    private void makeIntentTransition(){
+        if(!loggedIn) {
+            startActivityForResult(new Intent(getActivity(), SliderActivity.class), REQUEST_CODE);
+            loggedIn = true;
         }
     }
 
@@ -243,28 +266,6 @@ public class WelcomeFragment extends Fragment {
         public void onAuthenticationError(FirebaseError firebaseError) {
             mAuthProgressDialog.hide();
         }
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
-    }
-
-
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction();
     }
 
     // Validate email address for new accounts.
