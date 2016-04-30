@@ -51,6 +51,7 @@ public class PlacesFragment extends Fragment {
     private ArrayList<Result> places;
     private FrameLayout progressBar;
     private RecyclerViewMaterialAdapter materialAdapter;
+    private boolean callExecuted = false;
 
     public PlacesFragment() {
 
@@ -89,7 +90,9 @@ public class PlacesFragment extends Fragment {
         materialAdapter = new RecyclerViewMaterialAdapter(padapter);
         recyclerView.setAdapter(materialAdapter);
         MaterialViewPagerHelper.registerRecyclerView(getActivity(), recyclerView, null);
-
+        if(AppManager.getApicall()!=null){
+            makeAsyncCall(AppManager.getApicall());
+        }
         padapter.setOnItemClickListener(new PlacesAdapter.onItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
@@ -154,7 +157,7 @@ public class PlacesFragment extends Fragment {
         @SafeVarargs
         protected final ArrayList<Result> doInBackground(Call<Place>... values) {
             try {
-                Place res = values[0].execute().body();
+                Place res = values[0].clone().execute().body();
                 return res.getResults();
             } catch (Exception e) {
                 return null;
@@ -180,6 +183,9 @@ public class PlacesFragment extends Fragment {
 
     public void makeAsyncCall(Call<Place> call) {
         progressBar.setVisibility(View.VISIBLE);
-        new DownloadPlaces(materialAdapter).execute(call);
+        if(!callExecuted) {
+            callExecuted = true;
+            new DownloadPlaces(materialAdapter).execute(call);
+        }
     }
 }

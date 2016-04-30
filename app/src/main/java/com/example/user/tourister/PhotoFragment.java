@@ -37,6 +37,7 @@ public class PhotoFragment extends Fragment {
     private AtomicInteger counter = new AtomicInteger(0);
     private int placecount;
     private FrameLayout progressBar;
+    private boolean callexecuted = false;
     OnPhotoInteractionListener mListener;
 
     public PhotoFragment() {
@@ -72,13 +73,16 @@ public class PhotoFragment extends Fragment {
                 mListener.onPhotoInteraction(position, view);
             }
         });
+        if(AppManager.getApicall()!=null){
+            executeCurrentphotos(AppManager.getApicall());
+        }
         progressBar.setVisibility(View.GONE);
         return rootView;
     }
 
     private void setUpPhotos() {
-        progressBar.setVisibility(View.GONE);
         photomaterialpadapter.notifyDataSetChanged();
+        progressBar.setVisibility(View.GONE);
     }
 
     private class DownloadPlaceDetails extends AsyncTask<Void, Integer, Result> {
@@ -172,7 +176,10 @@ public class PhotoFragment extends Fragment {
     public void executeCurrentphotos(Call<Place> call){
         photoreferenceslist.clear();
         counter = new AtomicInteger(0);
-        new DownloadPlaces().execute(call);
         progressBar.setVisibility(View.VISIBLE);
+        if(!callexecuted) {
+            new DownloadPlaces().execute(call);
+            callexecuted = true;
+        }
     }
 }

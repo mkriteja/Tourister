@@ -2,7 +2,6 @@ package com.example.user.tourister;
 
 
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
@@ -11,7 +10,6 @@ import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -36,11 +34,10 @@ import java.util.Map;
 
 public class WelcomeFragment extends Fragment {
 
-    private static final String USER_CREATION_SUCCESS =  "Successfully created user";
-    private static final String USER_CREATION_ERROR =  "User creation error";
-    private static final String EMAIL_INVALID =  "email is invalid :";
+    private static final String USER_CREATION_SUCCESS = "Successfully created user";
+    private static final String USER_CREATION_ERROR = "User creation error";
+    private static final String EMAIL_INVALID = "email is invalid :";
     private static int REQUEST_CODE = 100;
-    private static boolean loggedIn = false;
 
     //Facebook
     private LoginButton loginButton;
@@ -64,6 +61,7 @@ public class WelcomeFragment extends Fragment {
     private ProgressDialog mAuthProgressDialog;
 
     private AlertDialog createAccdialog;
+    //private boolean loggedIn = false;
 
     public WelcomeFragment() {
         // Required empty public constructor
@@ -72,8 +70,8 @@ public class WelcomeFragment extends Fragment {
     public static WelcomeFragment newInstance() {
         WelcomeFragment fragment = new WelcomeFragment();
         Bundle args = new Bundle();
-        args.putString("username","");
-        args.putString("password","");
+        args.putString("username", "");
+        args.putString("password", "");
         fragment.setArguments(args);
         return fragment;
     }
@@ -97,17 +95,14 @@ public class WelcomeFragment extends Fragment {
         loginButton.registerCallback(mFacebookCallbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                int i=1;
             }
 
             @Override
             public void onCancel() {
-
             }
 
             @Override
             public void onError(FacebookException exception) {
-
             }
         });
 
@@ -126,7 +121,7 @@ public class WelcomeFragment extends Fragment {
         mAuthStateListener = new Firebase.AuthStateListener() {
             @Override
             public void onAuthStateChanged(AuthData authData) {
-                mAuthProgressDialog.hide();
+                mAuthProgressDialog.dismiss();
                 setAuthenticatedUser(authData);
             }
         };
@@ -159,11 +154,6 @@ public class WelcomeFragment extends Fragment {
                     @Override
                     public void onClick(View v) {
                         createUser();
-                        if(nameET.getText().length() > 0 && userNameET.getText().length() > 0 && passwordET.getText().length() > 0)
-                        {
-                            createAccdialog.dismiss();
-                            makeIntentTransition();
-                        }
                     }
                 });
             }
@@ -186,11 +176,11 @@ public class WelcomeFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == REQUEST_CODE){
+        if (requestCode == REQUEST_CODE) {
             mFirebaseRef.unauth();
             LoginManager.getInstance().logOut();
-            loggedIn = false;
-        }else {
+           // loggedIn = false;
+        } else {
             mFacebookCallbackManager.onActivityResult(requestCode, resultCode, data);
         }
 
@@ -205,16 +195,17 @@ public class WelcomeFragment extends Fragment {
             if (this.mAuthData != null && this.mAuthData.getProvider().equals("facebook")) {
                 mFirebaseRef.unauth();
                 setAuthenticatedUser(null);
+
             }
         }
     }
 
     private void setAuthenticatedUser(AuthData authData) {
         if (authData != null) {
-            final String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.","@@");
-            if(authData.getProvider().equals("facebook")){
+            final String email = ((String) authData.getProviderData().get("email")).replaceAll("\\.", "@@");
+            if (authData.getProvider().equals("facebook")) {
                 String name = (String) authData.getProviderData().get("displayName");
-                saveuserDetailsinFirebase(email,name);
+                saveuserDetailsinFirebase(email, name);
                 AppManager.setUsername(name);
             }
             AppManager.setUseremail(email);
@@ -223,20 +214,20 @@ public class WelcomeFragment extends Fragment {
         }
     }
 
-    private void makeIntentTransition(){
-        if(!loggedIn) {
-            startActivityForResult(new Intent(getActivity(), SliderActivity.class), REQUEST_CODE);
-            loggedIn = true;
-        }
+    private void makeIntentTransition() {
+       //if(!loggedIn) {
+          startActivityForResult(new Intent(getActivity(), SliderActivity.class), REQUEST_CODE);
+         // loggedIn = true;
+       //}
     }
 
-    private void saveuserDetailsinFirebase(final String email, final String name){
+    private void saveuserDetailsinFirebase(final String email, final String name) {
         final Firebase favref = AppManager.getRef();
         Query queryRef = favref.orderByKey().equalTo(email);
         queryRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.getChildrenCount()==0){
+                if (dataSnapshot.getChildrenCount() == 0) {
                     favref.child(email).child("Name").setValue(name);
                 }
             }
@@ -258,13 +249,13 @@ public class WelcomeFragment extends Fragment {
 
         @Override
         public void onAuthenticated(AuthData authData) {
-            mAuthProgressDialog.hide();
-            setAuthenticatedUser(authData);
+            //setAuthenticatedUser(authData);
+            mAuthProgressDialog.dismiss();
         }
 
         @Override
         public void onAuthenticationError(FirebaseError firebaseError) {
-            mAuthProgressDialog.hide();
+            mAuthProgressDialog.dismiss();
         }
     }
 
@@ -280,7 +271,7 @@ public class WelcomeFragment extends Fragment {
 
     // create a new user in Firebase
     public void createUser() {
-        if(userNameET.getText() == null ||  !isEmailValid(userNameET.getText().toString())) {
+        if (userNameET.getText().toString().isEmpty() || !isEmailValid(userNameET.getText().toString())) {
             return;
         }
         mFirebaseRef.createUser(userNameET.getText().toString(), passwordET.getText().toString(),
@@ -289,12 +280,13 @@ public class WelcomeFragment extends Fragment {
                     public void onSuccess(Map<String, Object> result) {
                         Snackbar snackbar = Snackbar.make(userNameET, USER_CREATION_SUCCESS, Snackbar.LENGTH_SHORT);
                         snackbar.show();
-                        if(nameET.getText().length() > 0 && userNameET.getText().length() > 0 && passwordET.getText().length() > 0) {
-                            saveuserDetailsinFirebase(userNameET.getText().toString().replaceAll("\\.","@@"),nameET.getText().toString());
+                        if (nameET.getText().length() > 0 && userNameET.getText().length() > 0 && passwordET.getText().length() > 0) {
+                            saveuserDetailsinFirebase(userNameET.getText().toString().replaceAll("\\.", "@@"), nameET.getText().toString());
                             mFirebaseRef.authWithPassword(userNameET.getText().toString().trim(), passwordET.getText().toString().trim(), new AuthResultHandler("password"));
+                            createAccdialog.dismiss();
                         }
-
                     }
+
                     @Override
                     public void onError(FirebaseError firebaseError) {
                         Snackbar snackbar = Snackbar.make(userNameET, USER_CREATION_ERROR, Snackbar.LENGTH_SHORT);

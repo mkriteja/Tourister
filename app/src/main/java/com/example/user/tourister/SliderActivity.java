@@ -204,12 +204,14 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 String username = (String) snapshot.getValue();
-                if (!username.isEmpty())
+                if (username!=null && !username.isEmpty()){
                     ((TextView) headerview.findViewById(R.id.usernameheader)).setText(username);
-            }
+                }
 
+            }
             @Override
             public void onCancelled(FirebaseError firebaseError) {
+                AppManager.setUsername("");
             }
         });
         mPreferences = getSharedPreferences(AppManager.getUseremail() + PREFS_LAST_IMG, Context.MODE_PRIVATE);
@@ -460,6 +462,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
     }
 
     public void callPlacesExecuteAsync(Call<Place> call) {
+        AppManager.setApicall(call);
         ((PlacesFragment) placesFragmentinstance).makeAsyncCall(call);
         ((PhotoFragment) photoFragmentinstance).executeCurrentphotos(call);
     }
@@ -483,7 +486,7 @@ public class SliderActivity extends AppCompatActivity implements NavigationView.
 
     @Override
     public void onLocationChanged(android.location.Location location) {
-        if (location.getLatitude() != lastLocation.getLatitude() || location.getLongitude() != lastLocation.getLongitude()) {
+        if (location.getLatitude() != lastLocation.getLatitude() || location.getLongitude() != lastLocation.getLongitude() ) {
             lastLocation = location;
             String currlocation = location.getLatitude() + "," + location.getLongitude();
             PlacesInterface service = AppManager.getRetrofit().create(PlacesInterface.class);
