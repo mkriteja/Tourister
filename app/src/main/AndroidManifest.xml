@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.user.tourister">
+    package="com.krishna.user.tourister">
 
     <uses-feature
         android:glEsVersion="0x00020000"
@@ -19,6 +19,8 @@
         android:label="@string/app_name"
         android:largeHeap="true"
         android:supportsRtl="true"
+        android:versionCode="2"
+        android:versionName="1.1"
         android:theme="@style/AppTheme">
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
@@ -30,27 +32,24 @@
             android:name="com.google.android.maps.v2.API_KEY"
             android:value="AIzaSyAMp0e92zYo7oEcLe8y2mFiqNDR_U7ARvQ" />
 
-        <activity
-            android:name=".SplashActivity"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+        <activity android:name="com.krishna.user.tourister.WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".WelcomeActivity" />
         <activity
             android:name="com.facebook.FacebookActivity"
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
             android:label="@string/app_name"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <activity android:name=".SliderActivity" />
-        <activity android:name=".DetailActivity" />
+        <activity android:name="com.krishna.user.tourister.SliderActivity" />
+        <activity android:name="com.krishna.user.tourister.DetailActivity" />
         <activity
-            android:name=".PhotoDetailActivity"
+            android:name="com.krishna.user.tourister.PhotoDetailActivity"
             android:theme="@style/PhotoActivityTheme" />
-        <activity android:name=".TourDetailActivity"></activity>
+        <activity android:name="com.krishna.user.tourister.TourDetailActivity" />
     </application>
 
 </manifest>

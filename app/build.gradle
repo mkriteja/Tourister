@@ -1,11 +1,18 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'krishna'
+            keyPassword 'SBOJ$2k16'
+            storeFile file('C:/Users/user/TouristerKeyStore.jks')
+            storePassword 'SPR#2k15'
+        }
+    }
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
-
     defaultConfig {
-        applicationId "com.example.user.tourister"
+        applicationId "com.krishna.user.tourister"
         minSdkVersion 23
         targetSdkVersion 23
         versionCode 1
@@ -14,8 +21,9 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
 }
@@ -36,9 +44,7 @@ dependencies {
     compile 'com.android.support:design:23.3.0'
     compile 'com.squareup.retrofit2:converter-gson:2.0.0-beta3'
     compile 'com.google.android.gms:play-services:8.4.0'
-    compile 'jp.wasabeef:recyclerview-animators:2.2.3'
     compile 'com.victor:lib:1.0.4'
     compile 'de.hdodenhof:circleimageview:2.0.0'
     compile 'com.github.castorflex.smoothprogressbar:library-circular:1.0.0'
-    compile 'com.firebaseui:firebase-ui:0.3.1'
 }
